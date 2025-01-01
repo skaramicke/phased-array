@@ -8,6 +8,9 @@ import {
   drawAntennas,
   drawTarget,
   drawGrid,
+  drawToolbox,
+  drawDraggingAntenna,
+  drawAntennaIcon,
 } from "../utils/drawing";
 
 interface PhaseArrayCanvasProps {
@@ -42,12 +45,14 @@ export function PhaseArrayCanvas({
   const [draggingAntennaIndex, setDraggingAntennaIndex] = useState<
     number | null
   >(null);
+  const [isNewAntenna, setIsNewAntenna] = useState(false);
+  const [showTrashCan, setShowTrashCan] = useState(false);
+  const cursorPositionRef = useRef<{ x: number; y: number } | null>(null);
 
   const offscreenCanvas = useMemo(() => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (ctx) {
-      // Enable alpha for transparency
       ctx.globalCompositeOperation = "source-over";
     }
     return canvas;
@@ -75,97 +80,26 @@ export function PhaseArrayCanvas({
     []
   );
 
-  const drawDraggingAntenna = useCallback(
-    (
-      ctx: CanvasRenderingContext2D,
-      canvas: HTMLCanvasElement,
-      wavelengthPixels: number,
-      x: number,
-      y: number,
-      offsetX: number,
-      offsetY: number
-    ) => {
-      const { x: canvasX, y: canvasY } = worldToCanvas(x, y, canvas);
-
-      // Draw helper circles
-      ctx.strokeStyle = "rgba(100, 100, 100, 0.8)";
-      ctx.setLineDash([5, 5]);
-
-      const maxRadius = Math.max(canvas.width, canvas.height);
-      for (
-        let radius = 0.25;
-        radius * wavelengthPixels <= maxRadius;
-        radius += 0.25
-      ) {
-        ctx.beginPath();
-        ctx.arc(canvasX, canvasY, radius * wavelengthPixels, 0, 2 * Math.PI);
-        ctx.stroke();
-      }
-
-      ctx.setLineDash([]);
-
-      // Draw ruler
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
-      ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.font = "12px Arial";
-
-      for (let i = -4; i <= 4; i++) {
-        if (i === 0) continue;
-        const rulerX = canvasX + i * wavelengthPixels;
-        ctx.beginPath();
-        ctx.moveTo(rulerX, canvasY - 10);
-        ctx.lineTo(rulerX, canvasY + 10);
-        ctx.stroke();
-        ctx.fillText(`${Math.abs(i)}λ`, rulerX, canvasY - 15);
-      }
-
-      // Draw antenna
-      ctx.strokeStyle = "rgba(0, 0, 255, 0.8)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(canvasX, canvasY, wavelengthPixels / 4, 0, 2 * Math.PI);
-      ctx.stroke();
-
-      // Draw crosshairs
-      ctx.beginPath();
-      ctx.moveTo(canvasX - wavelengthPixels / 4, canvasY);
-      ctx.lineTo(canvasX + wavelengthPixels / 4, canvasY);
-      ctx.moveTo(canvasX, canvasY - wavelengthPixels / 4);
-      ctx.lineTo(canvasX, canvasY + wavelengthPixels / 4);
-      ctx.stroke();
-
-      // Draw grab point
-      ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
-      ctx.beginPath();
-      ctx.arc(
-        canvasX + offsetX * wavelengthPixels,
-        canvasY - offsetY * wavelengthPixels,
-        5,
-        0,
-        2 * Math.PI
+  const isOverToolbox = useCallback(
+    (x: number, y: number, canvas: HTMLCanvasElement): boolean => {
+      const toolboxSize = canvas.width / 8;
+      const margin = 16;
+      return (
+        x >= canvas.width - toolboxSize - margin &&
+        x <= canvas.width - margin &&
+        y >= canvas.height - toolboxSize - margin &&
+        y <= canvas.height - margin
       );
-      ctx.fill();
-
-      // Draw position info
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-      ctx.fillRect(canvasX + 10, canvasY + 10, 120, 40);
-      ctx.fillStyle = "white";
-      ctx.font = "12px Arial";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(`X: ${x.toFixed(2)}λ`, canvasX + 15, canvasY + 15);
-      ctx.fillText(`Y: ${y.toFixed(2)}λ`, canvasX + 15, canvasY + 30);
     },
-    [worldToCanvas]
+    []
   );
 
   const draw = useCallback(
     (
       ctx: CanvasRenderingContext2D,
       canvas: HTMLCanvasElement,
-      time: number
+      time: number,
+      cursorPosition: { x: number; y: number } | null
     ) => {
       const gridSize = 10;
       const wavelengthPixels = canvas.width / gridSize;
@@ -174,7 +108,6 @@ export function PhaseArrayCanvas({
 
       drawGrid(ctx, canvas, gridSize);
 
-      // Draw zero point indicator
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.beginPath();
       ctx.arc(canvas.width / 2, canvas.height / 2, 5, 0, 2 * Math.PI);
@@ -212,23 +145,45 @@ export function PhaseArrayCanvas({
         );
       }
 
-      drawTarget(ctx, target, wavelengthPixels);
+      if (
+        cursorPosition &&
+        !isOverToolbox(cursorPosition.x, cursorPosition.y, canvas)
+      ) {
+        drawTarget(ctx, target, wavelengthPixels);
+      }
 
       if (
         isDraggingRef.current &&
         draggingPositionRef.current &&
         dragOffsetRef.current
       ) {
-        drawDraggingAntenna(
-          ctx,
-          canvas,
-          wavelengthPixels,
-          draggingPositionRef.current.x,
-          draggingPositionRef.current.y,
-          dragOffsetRef.current.x,
-          dragOffsetRef.current.y
-        );
+        if (
+          cursorPosition &&
+          isOverToolbox(cursorPosition.x, cursorPosition.y, canvas)
+        ) {
+          // Draw antenna symbol at cursor position when over toolbox
+          drawAntennaIcon(
+            ctx,
+            cursorPosition.x,
+            cursorPosition.y,
+            wavelengthPixels / 2
+          );
+        } else {
+          // Draw dragging antenna
+          drawDraggingAntenna(
+            ctx,
+            canvas,
+            wavelengthPixels,
+            draggingPositionRef.current.x,
+            draggingPositionRef.current.y,
+            dragOffsetRef.current.x,
+            dragOffsetRef.current.y,
+            worldToCanvas
+          );
+        }
       }
+
+      drawToolbox(ctx, canvas, wavelengthPixels, showTrashCan);
     },
     [
       antennas,
@@ -236,8 +191,10 @@ export function PhaseArrayCanvas({
       showWaves,
       showEmissionCircles,
       waveSpeed,
-      drawDraggingAntenna,
       draggingAntennaIndex,
+      showTrashCan,
+      isOverToolbox,
+      worldToCanvas,
     ]
   );
 
@@ -251,14 +208,16 @@ export function PhaseArrayCanvas({
 
     timeRef.current += waveSpeed * 0.01;
 
-    // Ensure consistent context states before drawing
     offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
     offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
-    // Draw everything on the offscreen canvas
-    draw(offscreenCtx, offscreenCanvas, timeRef.current);
+    draw(
+      offscreenCtx,
+      offscreenCanvas,
+      timeRef.current,
+      cursorPositionRef.current
+    );
 
-    // Clear the visible canvas and copy from offscreen
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(offscreenCanvas, 0, 0);
@@ -283,7 +242,6 @@ export function PhaseArrayCanvas({
       canvasWidth = containerHeight * aspectRatio;
     }
 
-    // Update both canvases with the same dimensions
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
     offscreenCanvas.width = canvasWidth;
@@ -308,7 +266,6 @@ export function PhaseArrayCanvas({
       resizeObserver.observe(containerRef.current);
     }
 
-    // Start the animation
     animationRef.current = requestAnimationFrame(animate);
 
     return () => {
@@ -331,65 +288,101 @@ export function PhaseArrayCanvas({
       const { x, y } = canvasToWorld(canvasX, canvasY, canvas);
 
       if (mode === "edit") {
-        for (let i = 0; i < antennas.length; i++) {
-          const antenna = antennas[i];
-          const distance = Math.sqrt(
-            (x - antenna.x) ** 2 + (y - antenna.y) ** 2
-          );
-          if (distance < 0.25) {
-            draggingAntennaRef.current = antenna;
-            isDraggingRef.current = true;
-            draggingPositionRef.current = { x: antenna.x, y: antenna.y };
-            dragOffsetRef.current = { x: x - antenna.x, y: y - antenna.y };
-            setDraggingAntennaIndex(i);
-            return;
+        if (isOverToolbox(canvasX, canvasY, canvas)) {
+          isDraggingRef.current = true;
+          draggingPositionRef.current = { x, y };
+          dragOffsetRef.current = { x: 0, y: 0 };
+          setIsNewAntenna(true);
+          setShowTrashCan(true);
+        } else {
+          for (let i = 0; i < antennas.length; i++) {
+            const antenna = antennas[i];
+            const distance = Math.sqrt(
+              (x - antenna.x) ** 2 + (y - antenna.y) ** 2
+            );
+            if (distance < 0.25) {
+              draggingAntennaRef.current = antenna;
+              isDraggingRef.current = true;
+              draggingPositionRef.current = { x: antenna.x, y: antenna.y };
+              dragOffsetRef.current = { x: x - antenna.x, y: y - antenna.y };
+              setDraggingAntennaIndex(i);
+              setShowTrashCan(true);
+              return;
+            }
           }
         }
-        setAntennas([...antennas, { x, y, phase: 0 }]);
       } else if (mode === "target") {
         setTarget({ x, y });
       }
     },
-    [mode, antennas, setAntennas, setTarget, canvasToWorld]
+    [mode, antennas, setAntennas, setTarget, canvasToWorld, isOverToolbox]
   );
 
   const handleCanvasMouseMove = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
-      if (!canvas || !isDraggingRef.current || !dragOffsetRef.current) return;
+      if (!canvas) return;
 
       const rect = canvas.getBoundingClientRect();
       const canvasX = (event.clientX - rect.left) * (canvas.width / rect.width);
       const canvasY =
         (event.clientY - rect.top) * (canvas.height / rect.height);
       const { x, y } = canvasToWorld(canvasX, canvasY, canvas);
-      draggingPositionRef.current = {
-        x: x - dragOffsetRef.current.x,
-        y: y - dragOffsetRef.current.y,
-      };
+
+      cursorPositionRef.current = { x: canvasX, y: canvasY };
+
+      if (isDraggingRef.current && dragOffsetRef.current) {
+        draggingPositionRef.current = {
+          x: x - dragOffsetRef.current.x,
+          y: y - dragOffsetRef.current.y,
+        };
+      }
     },
     [canvasToWorld]
   );
 
   const handleCanvasMouseUp = useCallback(() => {
-    if (draggingAntennaRef.current && draggingPositionRef.current) {
-      const updatedAntennas = antennas.map((antenna, index) =>
-        index === draggingAntennaIndex
-          ? {
-              ...antenna,
-              x: draggingPositionRef.current!.x,
-              y: draggingPositionRef.current!.y,
-            }
-          : antenna
-      );
-      setAntennas(updatedAntennas);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (isDraggingRef.current && draggingPositionRef.current) {
+      const { x, y } = draggingPositionRef.current;
+      if (
+        isOverToolbox(
+          worldToCanvas(x, y, canvas).x,
+          worldToCanvas(x, y, canvas).y,
+          canvas
+        )
+      ) {
+        if (!isNewAntenna) {
+          setAntennas(
+            antennas.filter((_, index) => index !== draggingAntennaIndex)
+          );
+        }
+      } else if (isNewAntenna) {
+        setAntennas([...antennas, { x, y, phase: 0 }]);
+      } else {
+        const updatedAntennas = antennas.map((antenna, index) =>
+          index === draggingAntennaIndex ? { ...antenna, x, y } : antenna
+        );
+        setAntennas(updatedAntennas);
+      }
     }
     draggingAntennaRef.current = null;
     isDraggingRef.current = false;
     draggingPositionRef.current = null;
     dragOffsetRef.current = null;
     setDraggingAntennaIndex(null);
-  }, [antennas, setAntennas, draggingAntennaIndex]);
+    setIsNewAntenna(false);
+    setShowTrashCan(false);
+  }, [
+    antennas,
+    setAntennas,
+    draggingAntennaIndex,
+    isNewAntenna,
+    isOverToolbox,
+    worldToCanvas,
+  ]);
 
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50">
@@ -399,6 +392,7 @@ export function PhaseArrayCanvas({
             ref={canvasRef}
             onMouseDown={handleCanvasMouseDown}
             onMouseMove={handleCanvasMouseMove}
+            onMouseEnter={handleCanvasMouseMove}
             onMouseUp={handleCanvasMouseUp}
             onMouseLeave={handleCanvasMouseUp}
             className="mx-auto"
