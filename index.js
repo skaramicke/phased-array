@@ -2,10 +2,16 @@
 
 // HTML setup
 document.body.innerHTML = `
+<div style="display: flex; flex-direction: column; justify-content: center; width: 800px; margin: 0 auto;">
   <canvas id="gridCanvas" width="800" height="800" style="border:1px solid black;"></canvas>
+  <div style="display: flex; justify-content: space-between; margin-top: 10px;">
   <div>
     <button id="editModeButton">Edit Mode</button>
     <button id="targetModeButton">Target Mode</button>
+  </div>
+  <div>
+    <a href="https://github.com/skaramicke/phased-array" target="_blank">View on GitHub</a>
+  </div>
   </div>
   <div>
     <label><input type="checkbox" id="showPropagation" checked /> Show Propagation</label>
@@ -17,6 +23,7 @@ document.body.innerHTML = `
   </div>
   <p>Click on the canvas to place antennas or select transmission direction.</p>
   <pre id="testResults"></pre>
+  </div>
 `;
 
 const canvas = document.getElementById("gridCanvas");
