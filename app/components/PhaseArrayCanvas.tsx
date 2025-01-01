@@ -315,7 +315,7 @@ export function PhaseArrayCanvas({
         setTarget({ x, y });
       }
     },
-    [mode, antennas, setAntennas, setTarget, canvasToWorld, isOverToolbox]
+    [mode, antennas, setTarget, canvasToWorld, isOverToolbox]
   );
 
   const handleCanvasMouseMove = useCallback(

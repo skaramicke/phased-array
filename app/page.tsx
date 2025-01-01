@@ -28,7 +28,7 @@ function useAntennasWithPhases(
 
   useEffect(() => {
     updateAntennas(antennas);
-  }, [target, updateAntennas]);
+  }, [antennas, target, updateAntennas]);
 
   return [antennas, updateAntennas] as const;
 }
