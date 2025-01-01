@@ -48,14 +48,16 @@ export function PhaseArrayCanvas({
   const [isNewAntenna, setIsNewAntenna] = useState(false);
   const [showTrashCan, setShowTrashCan] = useState(false);
   const cursorPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const offscreenCanvas = useMemo(() => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.globalCompositeOperation = "source-over";
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      offscreenCanvasRef.current = document.createElement("canvas");
+      const ctx = offscreenCanvasRef.current.getContext("2d");
+      if (ctx) {
+        ctx.globalCompositeOperation = "source-over";
+      }
     }
-    return canvas;
   }, []);
 
   const canvasToWorld = useCallback(
@@ -200,6 +202,7 @@ export function PhaseArrayCanvas({
 
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
+    const offscreenCanvas = offscreenCanvasRef.current;
     if (!canvas || !offscreenCanvas) return;
 
     const ctx = canvas.getContext("2d");
@@ -223,11 +226,12 @@ export function PhaseArrayCanvas({
     ctx.drawImage(offscreenCanvas, 0, 0);
 
     animationRef.current = requestAnimationFrame(animate);
-  }, [draw, waveSpeed, offscreenCanvas]);
+  }, [draw, waveSpeed]);
 
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
+    const offscreenCanvas = offscreenCanvasRef.current;
     if (!canvas || !container || !offscreenCanvas) return;
 
     const containerWidth = container.clientWidth;
@@ -249,11 +253,12 @@ export function PhaseArrayCanvas({
 
     canvas.style.width = `${canvasWidth}px`;
     canvas.style.height = `${canvasHeight}px`;
-  }, [offscreenCanvas]);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const offscreenCanvas = offscreenCanvasRef.current;
+    if (!canvas || !offscreenCanvas) return;
 
     const ctx = canvas.getContext("2d");
     const offscreenCtx = offscreenCanvas.getContext("2d");
@@ -274,7 +279,7 @@ export function PhaseArrayCanvas({
       }
       resizeObserver.disconnect();
     };
-  }, [animate, resizeCanvas, offscreenCanvas]);
+  }, [animate, resizeCanvas]);
 
   const handleCanvasMouseDown = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
