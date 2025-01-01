@@ -1,14 +1,14 @@
-'use client'
+"use client";
 
-import { useState, useEffect, KeyboardEvent } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Slider } from "@/components/ui/slider"
-import { Configuration, Antenna } from '../types'
-import { calculatePhases } from '../utils/phaseCalculations';
-import { Github } from "lucide-react";
+import { useState, useEffect, KeyboardEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Configuration, Antenna } from "../types";
+import { calculatePhases } from "../utils/phaseCalculations";
+import { Github, Trash2 } from "lucide-react";
 
 interface ControlPanelProps {
   mode: "edit" | "target";
@@ -151,7 +151,7 @@ export function ControlPanel({
   };
 
   return (
-    <div className="space-y-6 p-4 pt-6 bg-white relative">
+    <div className="space-y-6 p-4 pt-8 bg-white relative">
       {target && (
         <div>
           <Label>Target</Label>
@@ -176,7 +176,12 @@ export function ControlPanel({
               placeholder="Y (wavelengths)"
             />
             <span className="flex items-center">λ</span>
-            <Button onClick={() => setTarget(null)} variant="destructive">
+            <Button
+              onClick={() => setTarget(null)}
+              variant="destructive"
+              className="flex items-center justify-center"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
               Remove Target
             </Button>
           </div>
@@ -229,8 +234,9 @@ export function ControlPanel({
               <Button
                 onClick={() => handleRemoveAntenna(index)}
                 variant="destructive"
-                className="w-full"
+                className="w-full flex items-center justify-center"
               >
+                <Trash2 className="w-4 h-4 mr-2" />
                 Remove
               </Button>
             </div>
@@ -345,4 +351,3 @@ export function ControlPanel({
     </div>
   );
 }
-
