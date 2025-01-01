@@ -375,8 +375,8 @@ export function PhaseArrayCanvas({
 
   const handleCanvasMouseUp = useCallback(() => {
     if (draggingAntennaRef.current && draggingPositionRef.current) {
-      const updatedAntennas = antennas.map((antenna) =>
-        antenna === draggingAntennaRef.current
+      const updatedAntennas = antennas.map((antenna, index) =>
+        index === draggingAntennaIndex
           ? {
               ...antenna,
               x: draggingPositionRef.current!.x,
@@ -391,7 +391,7 @@ export function PhaseArrayCanvas({
     draggingPositionRef.current = null;
     dragOffsetRef.current = null;
     setDraggingAntennaIndex(null);
-  }, [antennas, setAntennas]);
+  }, [antennas, setAntennas, draggingAntennaIndex]);
 
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50">
