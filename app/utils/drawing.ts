@@ -238,20 +238,24 @@ export function drawAntennaIcon(
   ctx.translate(x, y);
   ctx.scale(size / 24, size / 24);
 
+  // Draw the vertical line (mast)
   ctx.beginPath();
-  ctx.moveTo(12, 5);
-  ctx.bezierCurveTo(15, 5, 17, 7, 17, 10);
-  ctx.moveTo(17, 10);
-  ctx.bezierCurveTo(17, 13, 15, 15, 12, 15);
-  ctx.moveTo(12, 15);
+  ctx.moveTo(12, 4);
   ctx.lineTo(12, 20);
-  ctx.moveTo(8, 20);
-  ctx.lineTo(16, 20);
-
   ctx.strokeStyle = "rgba(59, 130, 246, 0.8)"; // Blue color
   ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
+  ctx.stroke();
+
+  // Draw the dipole elements
+  ctx.beginPath();
+  ctx.moveTo(6, 8);
+  ctx.lineTo(18, 8);
+  ctx.moveTo(8, 12);
+  ctx.lineTo(16, 12);
+  ctx.moveTo(10, 16);
+  ctx.lineTo(14, 16);
+  ctx.strokeStyle = "rgba(59, 130, 246, 0.8)"; // Blue color
+  ctx.lineWidth = 2;
   ctx.stroke();
 
   ctx.restore();
