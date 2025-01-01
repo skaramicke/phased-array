@@ -1,4 +1,4 @@
-# phased-array
+# Phased Array Toy
 
 ## Antenna Array Simulator
 
