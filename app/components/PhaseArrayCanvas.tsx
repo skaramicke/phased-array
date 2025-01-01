@@ -181,7 +181,7 @@ export function PhaseArrayCanvas({
       ctx.fill();
 
       if (antennas.length > 0) {
-        if (showWaves && !isDraggingRef.current) {
+        if (showWaves) {
           drawPropagation(
             ctx,
             canvas,
@@ -192,7 +192,7 @@ export function PhaseArrayCanvas({
           );
         }
 
-        if (showEmissionCircles && !isDraggingRef.current) {
+        if (showEmissionCircles) {
           drawEmissionCircles(
             ctx,
             canvas,
@@ -249,9 +249,7 @@ export function PhaseArrayCanvas({
     const offscreenCtx = offscreenCanvas.getContext("2d");
     if (!ctx || !offscreenCtx) return;
 
-    if (!isDraggingRef.current) {
-      timeRef.current += waveSpeed * 0.01;
-    }
+    timeRef.current += waveSpeed * 0.01;
 
     // Ensure consistent context states before drawing
     offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
