@@ -6,6 +6,19 @@ import { ControlPanel } from "./components/ControlPanel";
 import { Antenna, Configuration } from "./types";
 import { loadConfigurations, saveConfiguration } from "./utils/storage";
 import { exportToYAML, importFromYAML } from "./utils/fileHandling";
+import { calculatePhases } from "./utils/phaseCalculations";
+
+function arraysEqual(a: Antenna[], b: Antenna[]) {
+  return (
+    a.length === b.length &&
+    a.every(
+      (antenna, index) =>
+        antenna.x === b[index].x &&
+        antenna.y === b[index].y &&
+        antenna.phase === b[index].phase
+    )
+  );
+}
 
 export default function PhaseArrayVisualizer() {
   const [antennas, setAntennas] = useState<Antenna[]>([]);
@@ -19,6 +32,16 @@ export default function PhaseArrayVisualizer() {
   useEffect(() => {
     setConfigurations(loadConfigurations());
   }, []);
+
+  useEffect(() => {
+    if (target) {
+      const updatedAntennas = calculatePhases(antennas, target);
+      // Only update if the phases have actually changed
+      if (!arraysEqual(updatedAntennas, antennas)) {
+        setAntennas(updatedAntennas);
+      }
+    }
+  }, [target]);
 
   const handleSaveConfiguration = (name: string) => {
     const newConfig: Configuration = { name, antennas, target };
@@ -77,6 +100,10 @@ export default function PhaseArrayVisualizer() {
               configurations={configurations}
               onExportConfiguration={handleExportConfiguration}
               onImportConfiguration={handleImportConfiguration}
+              antennas={antennas}
+              setAntennas={setAntennas}
+              target={target}
+              setTarget={setTarget}
             />
           </div>
         </div>

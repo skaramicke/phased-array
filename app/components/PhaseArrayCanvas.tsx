@@ -9,6 +9,7 @@ import {
   drawAntennas,
   drawTarget,
 } from "../utils/drawing";
+import { calculatePhases } from "../utils/phaseCalculations";
 
 interface PhaseArrayCanvasProps {
   antennas: Antenna[];
@@ -49,20 +50,17 @@ export function PhaseArrayCanvas({
       waveSpeed: number
     ) => {
       const gridSize = 10;
-      const cellSize = canvas.width / gridSize;
+      const wavelengthPixels = canvas.width / gridSize;
 
-      // Always draw the grid
       drawGrid(ctx, canvas, gridSize);
 
-      // Draw other elements if there are antennas, regardless of target
       if (antennas.length > 0) {
         if (showWaves) {
           drawPropagation(
             ctx,
             canvas,
             antennas,
-            target,
-            cellSize,
+            wavelengthPixels,
             time,
             waveSpeed
           );
@@ -73,18 +71,16 @@ export function PhaseArrayCanvas({
             ctx,
             canvas,
             antennas,
-            target,
-            cellSize,
+            wavelengthPixels,
             time,
             waveSpeed
           );
         }
 
-        drawAntennas(ctx, antennas, target, cellSize, cellSize);
+        drawAntennas(ctx, antennas, wavelengthPixels);
       }
 
-      // Always draw the target if it exists
-      drawTarget(ctx, target);
+      drawTarget(ctx, target, wavelengthPixels);
     },
     []
   );
@@ -99,7 +95,7 @@ export function PhaseArrayCanvas({
       showEmissionCircles: boolean,
       waveSpeed: number
     ) => {
-      timeRef.current += waveSpeed * 0.1;
+      timeRef.current += waveSpeed * 0.01;
       draw(
         ctx,
         canvas,
@@ -195,21 +191,27 @@ export function PhaseArrayCanvas({
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+    const x =
+      ((event.clientX - rect.left) * (canvas.width / rect.width)) /
+      (canvas.width / 10);
+    const y =
+      ((event.clientY - rect.top) * (canvas.height / rect.height)) /
+      (canvas.width / 10);
 
     if (mode === "edit") {
       for (const antenna of antennas) {
         const distance = Math.sqrt((x - antenna.x) ** 2 + (y - antenna.y) ** 2);
-        if (distance < canvas.width / (4 * 10)) {
+        if (distance < 0.25) {
           draggingAntennaRef.current = antenna;
           return;
         }
       }
 
-      setAntennas([...antennas, { x, y }]);
+      setAntennas([...antennas, { x, y, phase: 0 }]);
     } else if (mode === "target") {
       setTarget({ x, y });
+      const updatedAntennas = calculatePhases(antennas, { x, y });
+      setAntennas(updatedAntennas);
     }
   };
 
@@ -222,8 +224,12 @@ export function PhaseArrayCanvas({
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+    const x =
+      ((event.clientX - rect.left) * (canvas.width / rect.width)) /
+      (canvas.width / 10);
+    const y =
+      ((event.clientY - rect.top) * (canvas.height / rect.height)) /
+      (canvas.width / 10);
 
     draggingAntennaRef.current.x = x;
     draggingAntennaRef.current.y = y;

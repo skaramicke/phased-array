@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Configuration } from "../types";
+import { Configuration, Antenna } from "../types";
 
 interface ControlPanelProps {
   mode: "edit" | "target";
@@ -22,6 +22,10 @@ interface ControlPanelProps {
   configurations: Configuration[];
   onExportConfiguration: () => void;
   onImportConfiguration: (file: File) => void;
+  antennas: Antenna[];
+  setAntennas: (antennas: Antenna[]) => void;
+  target: { x: number; y: number } | null;
+  setTarget: (target: { x: number; y: number } | null) => void;
 }
 
 export function ControlPanel({
@@ -38,6 +42,10 @@ export function ControlPanel({
   configurations,
   onExportConfiguration,
   onImportConfiguration,
+  antennas,
+  setAntennas,
+  target,
+  setTarget,
 }: ControlPanelProps) {
   const [configName, setConfigName] = useState("");
 
@@ -48,8 +56,109 @@ export function ControlPanel({
     }
   };
 
+  const handleAntennaChange = (
+    index: number,
+    field: keyof Antenna,
+    value: number
+  ) => {
+    const newAntennas = [...antennas];
+    newAntennas[index][field] = value;
+    setAntennas(newAntennas);
+  };
+
+  const handleRemoveAntenna = (index: number) => {
+    const newAntennas = antennas.filter((_, i) => i !== index);
+    setAntennas(newAntennas);
+  };
+
+  const handleAddAntenna = () => {
+    setAntennas([...antennas, { x: 0, y: 0, phase: 0 }]);
+  };
+
   return (
     <div className="space-y-6 p-4 bg-white">
+      {target && (
+        <div>
+          <Label>Target</Label>
+          <div className="flex space-x-2 mt-2">
+            <Input
+              type="number"
+              value={target.x.toFixed(2)}
+              onChange={(e) =>
+                setTarget({ ...target, x: parseFloat(e.target.value) })
+              }
+              className="flex-1"
+              placeholder="X (wavelengths)"
+            />
+            <Input
+              type="number"
+              value={target.y.toFixed(2)}
+              onChange={(e) =>
+                setTarget({ ...target, y: parseFloat(e.target.value) })
+              }
+              className="flex-1"
+              placeholder="Y (wavelengths)"
+            />
+            <Button onClick={() => setTarget(null)} variant="destructive">
+              Remove Target
+            </Button>
+          </div>
+        </div>
+      )}
+      <div>
+        <Label>Antennas</Label>
+        <div className="space-y-4 mt-2">
+          {antennas.map((antenna, index) => (
+            <div key={index} className="space-y-2">
+              <div className="flex space-x-2">
+                <Input
+                  type="number"
+                  value={antenna.x.toFixed(2)}
+                  onChange={(e) =>
+                    handleAntennaChange(index, "x", parseFloat(e.target.value))
+                  }
+                  disabled={!!target}
+                  className="flex-1"
+                  placeholder="X (wavelengths)"
+                />
+                <Input
+                  type="number"
+                  value={antenna.y.toFixed(2)}
+                  onChange={(e) =>
+                    handleAntennaChange(index, "y", parseFloat(e.target.value))
+                  }
+                  disabled={!!target}
+                  className="flex-1"
+                  placeholder="Y (wavelengths)"
+                />
+                <Input
+                  type="number"
+                  value={antenna.phase.toFixed(1)}
+                  onChange={(e) =>
+                    handleAntennaChange(
+                      index,
+                      "phase",
+                      parseFloat(e.target.value)
+                    )
+                  }
+                  disabled={!!target}
+                  className="flex-1"
+                  placeholder="Phase (degrees)"
+                />
+                <Button
+                  onClick={() => handleRemoveAntenna(index)}
+                  variant="destructive"
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ))}
+          <Button onClick={handleAddAntenna} className="w-full">
+            Add Antenna
+          </Button>
+        </div>
+      </div>
       <div>
         <Label>Mode</Label>
         <div className="flex space-x-2 mt-2">
