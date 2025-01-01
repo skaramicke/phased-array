@@ -43,7 +43,6 @@ function useAntennasWithPhases(
 export default function PhaseArrayVisualizer() {
   const [target, setTarget] = useState<{ x: number; y: number } | null>(null);
   const [antennas, setAntennas] = useAntennasWithPhases([], target);
-  const [mode, setMode] = useState<"edit" | "target">("edit");
   const [showWaves, setShowWaves] = useState(true);
   const [showEmissionCircles, setShowEmissionCircles] = useState(false);
   const [waveSpeed, setWaveSpeed] = useState(2);
@@ -96,8 +95,6 @@ export default function PhaseArrayVisualizer() {
   const memoizedControlPanel = useMemo(
     () => (
       <ControlPanel
-        mode={mode}
-        setMode={setMode}
         showWaves={showWaves}
         setShowWaves={setShowWaves}
         showEmissionCircles={showEmissionCircles}
@@ -116,7 +113,6 @@ export default function PhaseArrayVisualizer() {
       />
     ),
     [
-      mode,
       showWaves,
       showEmissionCircles,
       waveSpeed,
@@ -143,7 +139,6 @@ export default function PhaseArrayVisualizer() {
                 setAntennas={setAntennas}
                 target={target}
                 setTarget={handleSetTarget}
-                mode={mode}
                 showWaves={showWaves}
                 showEmissionCircles={showEmissionCircles}
                 waveSpeed={waveSpeed}

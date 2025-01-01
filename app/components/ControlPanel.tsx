@@ -11,8 +11,6 @@ import { calculatePhases } from "../utils/phaseCalculations";
 import { Github, Trash2 } from "lucide-react";
 
 interface ControlPanelProps {
-  mode: "edit" | "target";
-  setMode: (mode: "edit" | "target") => void;
   showWaves: boolean;
   setShowWaves: (show: boolean) => void;
   showEmissionCircles: boolean;
@@ -31,8 +29,6 @@ interface ControlPanelProps {
 }
 
 export function ControlPanel({
-  mode,
-  setMode,
   showWaves,
   setShowWaves,
   showEmissionCircles,
@@ -243,25 +239,6 @@ export function ControlPanel({
           ))}
           <Button onClick={handleAddAntenna} className="w-full">
             Add Antenna
-          </Button>
-        </div>
-      </div>
-      <div>
-        <Label>Mode</Label>
-        <div className="flex space-x-2 mt-2">
-          <Button
-            variant={mode === "edit" ? "default" : "outline"}
-            onClick={() => setMode("edit")}
-            className="flex-1"
-          >
-            Edit
-          </Button>
-          <Button
-            variant={mode === "target" ? "default" : "outline"}
-            onClick={() => setMode("target")}
-            className="flex-1"
-          >
-            Target
           </Button>
         </div>
       </div>

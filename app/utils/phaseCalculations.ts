@@ -47,7 +47,7 @@ export function calculatePhases(
   const arrayCenter = calculateArrayCenter(antennas);
   const targetDirection = calculateTargetDirection(arrayCenter, target);
 
-  // Find the antenna furthest in the positive direction along the target vector
+  // Find the antenna furthest in the negative direction along the target vector
   const referenceAntenna = antennas.reduce((furthest, current) => {
     const furthestDistance = calculateAntennaDistance(
       furthest,
@@ -59,7 +59,7 @@ export function calculatePhases(
       arrayCenter,
       targetDirection
     );
-    return currentDistance > furthestDistance ? current : furthest;
+    return currentDistance < furthestDistance ? current : furthest;
   });
 
   const referenceDistance = calculateAntennaDistance(
