@@ -15,7 +15,7 @@ import {
 
 interface PhaseArrayCanvasProps {
   antennas: Antenna[];
-  setAntennas: (antennas: Antenna[]) => void;
+  setAntennas: React.Dispatch<React.SetStateAction<Antenna[]>>;
   target: { x: number; y: number } | null;
   setTarget: (target: { x: number; y: number } | null) => void;
   mode: "edit" | "target";
@@ -360,17 +360,18 @@ export function PhaseArrayCanvas({
         )
       ) {
         if (!isNewAntenna) {
-          setAntennas(
-            antennas.filter((_, index) => index !== draggingAntennaIndex)
+          setAntennas((prevAntennas) =>
+            prevAntennas.filter((_, index) => index !== draggingAntennaIndex)
           );
         }
       } else if (isNewAntenna) {
-        setAntennas([...antennas, { x, y, phase: 0 }]);
+        setAntennas((prevAntennas) => [...prevAntennas, { x, y, phase: 0 }]);
       } else {
-        const updatedAntennas = antennas.map((antenna, index) =>
-          index === draggingAntennaIndex ? { ...antenna, x, y } : antenna
+        setAntennas((prevAntennas) =>
+          prevAntennas.map((antenna, index) =>
+            index === draggingAntennaIndex ? { ...antenna, x, y } : antenna
+          )
         );
-        setAntennas(updatedAntennas);
       }
     }
     draggingAntennaRef.current = null;
@@ -381,11 +382,10 @@ export function PhaseArrayCanvas({
     setIsNewAntenna(false);
     setShowTrashCan(false);
   }, [
-    antennas,
-    setAntennas,
     draggingAntennaIndex,
     isNewAntenna,
     isOverToolbox,
+    setAntennas,
     worldToCanvas,
   ]);
 

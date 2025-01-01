@@ -11,26 +11,33 @@ import { calculatePhases } from "./utils/phaseCalculations";
 function useAntennasWithPhases(
   initialAntennas: Antenna[],
   target: { x: number; y: number } | null
-) {
+): [Antenna[], React.Dispatch<React.SetStateAction<Antenna[]>>] {
   const [antennas, setAntennas] = useState<Antenna[]>(initialAntennas);
 
   const updateAntennas = useCallback(
-    (newAntennas: Antenna[]) => {
-      if (target) {
-        const updatedAntennas = calculatePhases(newAntennas, target);
-        setAntennas(updatedAntennas);
-      } else {
-        setAntennas(newAntennas);
-      }
+    (newAntennas: Antenna[] | ((prev: Antenna[]) => Antenna[])) => {
+      setAntennas((prevAntennas) => {
+        const updatedAntennas =
+          typeof newAntennas === "function"
+            ? newAntennas(prevAntennas)
+            : newAntennas;
+        if (target) {
+          return calculatePhases(updatedAntennas, target);
+        }
+        return updatedAntennas;
+      });
     },
     [target]
   );
 
   useEffect(() => {
-    updateAntennas(antennas);
-  }, [antennas, target, updateAntennas]);
+    if (target) {
+      updateAntennas(antennas);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, updateAntennas]);
 
-  return [antennas, updateAntennas] as const;
+  return [antennas, updateAntennas];
 }
 
 export default function PhaseArrayVisualizer() {
