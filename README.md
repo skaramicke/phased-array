@@ -1,5 +1,7 @@
 # Phased Array Toy
 
+See it live at [https://phased-array.sa6ham.se/](https://phased-array.sa6ham.se/)
+
 ## Antenna Array Simulator
 
 This project is a web-based Antenna Array Simulator that allows users to visualize and interact with antenna arrays. The simulator provides a graphical interface to place antennas, set a transmission target, and observe wave propagation and emission circles.
