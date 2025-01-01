@@ -2,7 +2,11 @@
 
 ## Antenna Array Simulator
 
-This project is a web-based Antenna Array Simulator that allows users to visualize and interact with antenna arrays. The simulator provides a graphical interface to place antennas, set transmission targets, and observe wave propagation and emission circles.
+This project is a web-based Antenna Array Simulator that allows users to visualize and interact with antenna arrays. The simulator provides a graphical interface to place antennas, set a transmission target, and observe wave propagation and emission circles.
+
+## Warning
+
+The algorithms are under development and may not be accurate. The simulator is intended for educational purposes only, for the time being.
 
 ### Features
 
