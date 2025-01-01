@@ -49,25 +49,27 @@ export function ControlPanel({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 bg-white">
       <div>
         <Label>Mode</Label>
         <div className="flex space-x-2 mt-2">
           <Button
             variant={mode === "edit" ? "default" : "outline"}
             onClick={() => setMode("edit")}
+            className="flex-1"
           >
             Edit
           </Button>
           <Button
             variant={mode === "target" ? "default" : "outline"}
             onClick={() => setMode("target")}
+            className="flex-1"
           >
             Target
           </Button>
         </div>
       </div>
-      <div>
+      <div className="flex items-center justify-between">
         <Label htmlFor="show-waves">Show Waves</Label>
         <Switch
           id="show-waves"
@@ -75,7 +77,7 @@ export function ControlPanel({
           onCheckedChange={setShowWaves}
         />
       </div>
-      <div>
+      <div className="flex items-center justify-between">
         <Label htmlFor="show-emission-circles">Show Emission Circles</Label>
         <Switch
           id="show-emission-circles"
@@ -92,38 +94,51 @@ export function ControlPanel({
           step={0.1}
           value={[waveSpeed]}
           onValueChange={(value) => setWaveSpeed(value[0])}
+          className="mt-2"
         />
       </div>
       <div>
         <Label htmlFor="config-name">Configuration Name</Label>
-        <Input
-          id="config-name"
-          value={configName}
-          onChange={(e) => setConfigName(e.target.value)}
-        />
-        <Button onClick={() => onSaveConfiguration(configName)}>
-          Save Configuration
-        </Button>
+        <div className="flex space-x-2 mt-2">
+          <Input
+            id="config-name"
+            value={configName}
+            onChange={(e) => setConfigName(e.target.value)}
+            className="flex-1"
+          />
+          <Button onClick={() => onSaveConfiguration(configName)}>Save</Button>
+        </div>
       </div>
       <div>
         <Label>Load Configuration</Label>
-        {configurations.map((config) => (
-          <Button key={config.name} onClick={() => onLoadConfiguration(config)}>
-            {config.name}
-          </Button>
-        ))}
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          {configurations.map((config) => (
+            <Button
+              key={config.name}
+              onClick={() => onLoadConfiguration(config)}
+              className="w-full"
+            >
+              {config.name}
+            </Button>
+          ))}
+        </div>
       </div>
-      <div>
-        <Button onClick={onExportConfiguration}>Export Configuration</Button>
-      </div>
-      <div>
-        <Label htmlFor="import-config">Import Configuration</Label>
-        <Input
-          id="import-config"
-          type="file"
-          accept=".yaml,.yml"
-          onChange={handleImport}
-        />
+      <div className="flex space-x-2">
+        <Button onClick={onExportConfiguration} className="flex-1">
+          Export Configuration
+        </Button>
+        <div className="flex-1">
+          <Input
+            id="import-config"
+            type="file"
+            accept=".yaml,.yml"
+            onChange={handleImport}
+            className="hidden"
+          />
+          <Label htmlFor="import-config" className="cursor-pointer">
+            <Button className="w-full">Import Configuration</Button>
+          </Label>
+        </div>
       </div>
     </div>
   );

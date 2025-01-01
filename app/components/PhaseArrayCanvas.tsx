@@ -32,6 +32,7 @@ export function PhaseArrayCanvas({
   waveSpeed,
 }: PhaseArrayCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const timeRef = useRef<number>(0);
   const draggingAntennaRef = useRef<Antenna | null>(null);
@@ -124,6 +125,29 @@ export function PhaseArrayCanvas({
     [draw]
   );
 
+  const resizeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+
+    const aspectRatio = 4 / 3;
+    let canvasWidth = containerWidth;
+    let canvasHeight = containerWidth / aspectRatio;
+
+    if (canvasHeight > containerHeight) {
+      canvasHeight = containerHeight;
+      canvasWidth = containerHeight * aspectRatio;
+    }
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${canvasHeight}px`;
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -131,9 +155,12 @@ export function PhaseArrayCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas size to match its display size
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
+    resizeCanvas();
+
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
 
     animate(
       ctx,
@@ -149,8 +176,17 @@ export function PhaseArrayCanvas({
       if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
       }
+      resizeObserver.disconnect();
     };
-  }, [antennas, target, showWaves, showEmissionCircles, waveSpeed, animate]);
+  }, [
+    antennas,
+    target,
+    showWaves,
+    showEmissionCircles,
+    waveSpeed,
+    animate,
+    resizeCanvas,
+  ]);
 
   const handleCanvasMouseDown = (
     event: React.MouseEvent<HTMLCanvasElement>
@@ -159,8 +195,8 @@ export function PhaseArrayCanvas({
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (event.clientY - rect.top) * (canvas.height / rect.height);
 
     if (mode === "edit") {
       for (const antenna of antennas) {
@@ -186,8 +222,8 @@ export function PhaseArrayCanvas({
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (event.clientY - rect.top) * (canvas.height / rect.height);
 
     draggingAntennaRef.current.x = x;
     draggingAntennaRef.current.y = y;
@@ -200,12 +236,14 @@ export function PhaseArrayCanvas({
   };
 
   return (
-    <canvas
-      ref={canvasRef}
-      onMouseDown={handleCanvasMouseDown}
-      onMouseMove={handleCanvasMouseMove}
-      onMouseUp={handleCanvasMouseUp}
-      className="border border-gray-300 rounded-lg shadow-lg w-full h-full"
-    />
+    <div ref={containerRef} className="w-full h-full bg-gray-50">
+      <canvas
+        ref={canvasRef}
+        onMouseDown={handleCanvasMouseDown}
+        onMouseMove={handleCanvasMouseMove}
+        onMouseUp={handleCanvasMouseUp}
+        className="mx-auto"
+      />
+    </div>
   );
 }

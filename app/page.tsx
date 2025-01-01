@@ -45,35 +45,41 @@ export default function PhaseArrayVisualizer() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <div className="flex-1 p-4">
-        <PhaseArrayCanvas
-          antennas={antennas}
-          setAntennas={setAntennas}
-          target={target}
-          setTarget={setTarget}
-          mode={mode}
-          showWaves={showWaves}
-          showEmissionCircles={showEmissionCircles}
-          waveSpeed={waveSpeed}
-        />
-      </div>
-      <div className="w-80 bg-white p-4 shadow-lg overflow-y-auto">
-        <ControlPanel
-          mode={mode}
-          setMode={setMode}
-          showWaves={showWaves}
-          setShowWaves={setShowWaves}
-          showEmissionCircles={showEmissionCircles}
-          setShowEmissionCircles={setShowEmissionCircles}
-          waveSpeed={waveSpeed}
-          setWaveSpeed={setWaveSpeed}
-          onSaveConfiguration={handleSaveConfiguration}
-          onLoadConfiguration={handleLoadConfiguration}
-          configurations={configurations}
-          onExportConfiguration={handleExportConfiguration}
-          onImportConfiguration={handleImportConfiguration}
-        />
+    <div className="min-h-screen bg-gray-100 flex justify-center">
+      <div className="w-full max-w-4xl bg-white">
+        <div className="flex flex-col h-screen">
+          <div className="w-full pb-[75%] relative">
+            <div className="absolute inset-0">
+              <PhaseArrayCanvas
+                antennas={antennas}
+                setAntennas={setAntennas}
+                target={target}
+                setTarget={setTarget}
+                mode={mode}
+                showWaves={showWaves}
+                showEmissionCircles={showEmissionCircles}
+                waveSpeed={waveSpeed}
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <ControlPanel
+              mode={mode}
+              setMode={setMode}
+              showWaves={showWaves}
+              setShowWaves={setShowWaves}
+              showEmissionCircles={showEmissionCircles}
+              setShowEmissionCircles={setShowEmissionCircles}
+              waveSpeed={waveSpeed}
+              setWaveSpeed={setWaveSpeed}
+              onSaveConfiguration={handleSaveConfiguration}
+              onLoadConfiguration={handleLoadConfiguration}
+              configurations={configurations}
+              onExportConfiguration={handleExportConfiguration}
+              onImportConfiguration={handleImportConfiguration}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
