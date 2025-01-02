@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useMemo } from "react";
+import { useRef, useEffect, useCallback, useMemo, useState } from "react";
 import { Antenna } from "../types";
 import { drawGrid } from "../drawing/grid";
 import { drawPropagation, drawEmissionCircles } from "../drawing/propagation";
@@ -47,6 +47,7 @@ export function PhaseArrayCanvas({
   const animationRef = useRef<number | null>(null);
   const timeRef = useRef<number>(0);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isToolboxHovered, setIsToolboxHovered] = useState(false);
 
   const {
     draggingAntennaIndex,
@@ -169,7 +170,13 @@ export function PhaseArrayCanvas({
       }
 
       // Draw toolbox last so it's not dimmed by the overlay
-      drawToolbox(ctx, canvas, wavelengthPixels, showTrashCan);
+      drawToolbox(
+        ctx,
+        canvas,
+        wavelengthPixels,
+        showTrashCan,
+        isToolboxHovered
+      );
     },
     [
       antennas,
@@ -185,6 +192,7 @@ export function PhaseArrayCanvas({
       memoizedGainChartData,
       waveSpeed,
       drawOverlay,
+      isToolboxHovered,
     ]
   );
 
@@ -291,6 +299,8 @@ export function PhaseArrayCanvas({
 
       cursorPositionRef.current = { x: canvasX, y: canvasY };
 
+      setIsToolboxHovered(isOverToolbox(canvasX, canvasY, canvas));
+
       if (isDraggingRef.current && dragOffsetRef.current) {
         draggingPositionRef.current = {
           x: x - dragOffsetRef.current.x,
@@ -298,7 +308,13 @@ export function PhaseArrayCanvas({
         };
       }
     },
-    [cursorPositionRef, dragOffsetRef, draggingPositionRef, isDraggingRef]
+    [
+      cursorPositionRef,
+      dragOffsetRef,
+      draggingPositionRef,
+      isDraggingRef,
+      setIsToolboxHovered,
+    ]
   );
 
   const handleCanvasMouseUp = useCallback(
@@ -353,23 +369,49 @@ export function PhaseArrayCanvas({
   );
 
   const handleCanvasClick = useCallback(
-    (event: React.MouseEvent<HTMLCanvasElement>) => {
+    (
+      event:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>
+    ) => {
       if (wasDragging) return; // Ignore clicks right after dragging
 
       const canvas = canvasRef.current;
       if (!canvas) return;
 
       const rect = canvas.getBoundingClientRect();
-      const canvasX = (event.clientX - rect.left) * (canvas.width / rect.width);
-      const canvasY =
-        (event.clientY - rect.top) * (canvas.height / rect.height);
+      let clientX: number, clientY: number;
+
+      if ("touches" in event) {
+        // Touch event
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+      } else {
+        // Mouse event
+        clientX = event.clientX;
+        clientY = event.clientY;
+      }
+
+      const canvasX = (clientX - rect.left) * (canvas.width / rect.width);
+      const canvasY = (clientY - rect.top) * (canvas.height / rect.height);
       const { x, y } = canvasToWorld(canvasX, canvasY, canvas);
 
-      if (antennas.length > 0) {
+      // Check if the click/touch is on the toolbox
+      if (isOverToolbox(canvasX, canvasY, canvas)) {
+        return; // Don't set target if click is on toolbox
+      }
+
+      // Check if the click/touch is on an antenna
+      const isOnAntenna = antennas.some(
+        (antenna) =>
+          Math.sqrt((x - antenna.x) ** 2 + (y - antenna.y) ** 2) < 0.25
+      );
+
+      if (antennas.length > 0 && !isOnAntenna) {
         setTarget({ x, y });
       }
     },
-    [antennas.length, wasDragging, setTarget]
+    [antennas, wasDragging, setTarget]
   );
 
   const nativeHandleCanvasTouchStart: TouchStartHandler = useCallback(
@@ -424,6 +466,8 @@ export function PhaseArrayCanvas({
 
       cursorPositionRef.current = { x: canvasX, y: canvasY };
 
+      setIsToolboxHovered(isOverToolbox(canvasX, canvasY, canvas));
+
       if (isDraggingRef.current && dragOffsetRef.current) {
         draggingPositionRef.current = {
           x: x - dragOffsetRef.current.x,
@@ -431,15 +475,71 @@ export function PhaseArrayCanvas({
         };
       }
     },
-    [cursorPositionRef, dragOffsetRef, draggingPositionRef, isDraggingRef]
+    [
+      cursorPositionRef,
+      dragOffsetRef,
+      draggingPositionRef,
+      isDraggingRef,
+      setIsToolboxHovered,
+    ]
   );
 
   const nativeHandleCanvasTouchEnd: TouchEndHandler = useCallback(
     (event) => {
       event.preventDefault();
-      handleCanvasMouseUp({} as React.MouseEvent<HTMLCanvasElement>);
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      if (isDraggingRef.current && draggingPositionRef.current) {
+        const { x, y } = draggingPositionRef.current;
+        if (
+          isOverToolbox(
+            worldToCanvas(x, y, canvas).x,
+            worldToCanvas(x, y, canvas).y,
+            canvas
+          )
+        ) {
+          if (!isNewAntenna) {
+            setAntennas((prevAntennas) =>
+              prevAntennas.filter((_, index) => index !== draggingAntennaIndex)
+            );
+          }
+        } else if (isNewAntenna) {
+          setAntennas((prevAntennas) => [...prevAntennas, { x, y, phase: 0 }]);
+        } else {
+          setAntennas((prevAntennas) =>
+            prevAntennas.map((antenna, index) =>
+              index === draggingAntennaIndex ? { ...antenna, x, y } : antenna
+            )
+          );
+        }
+        setWasDragging(true);
+        setTimeout(() => setWasDragging(false), 0);
+      } else if (!wasDragging && antennas.length > 0) {
+        const touch = event.changedTouches[0];
+        const rect = canvas.getBoundingClientRect();
+        const canvasX =
+          (touch.clientX - rect.left) * (canvas.width / rect.width);
+        const canvasY =
+          (touch.clientY - rect.top) * (canvas.height / rect.height);
+        const { x, y } = canvasToWorld(canvasX, canvasY, canvas);
+        setTarget({ x, y });
+      }
+
+      handleStopDragging();
     },
-    [handleCanvasMouseUp]
+    [
+      isDraggingRef,
+      draggingPositionRef,
+      handleStopDragging,
+      isNewAntenna,
+      setWasDragging,
+      setAntennas,
+      draggingAntennaIndex,
+      antennas.length,
+      setTarget,
+      wasDragging,
+    ]
   );
 
   useEffect(() => {
@@ -490,6 +590,9 @@ export function PhaseArrayCanvas({
     nativeHandleCanvasTouchStart,
     nativeHandleCanvasTouchMove,
     nativeHandleCanvasTouchEnd,
+    antennas.length,
+    setTarget,
+    wasDragging,
   ]);
 
   return (
@@ -499,6 +602,7 @@ export function PhaseArrayCanvas({
           <canvas
             ref={canvasRef}
             onClick={handleCanvasClick}
+            onTouchStart={handleCanvasClick}
             onMouseDown={handleCanvasMouseDown}
             onMouseMove={handleCanvasMouseMove}
             onMouseUp={handleCanvasMouseUp}

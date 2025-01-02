@@ -2,7 +2,8 @@ export function drawToolbox(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   wavelengthPixels: number,
-  showTrashCan: boolean
+  showTrashCan: boolean,
+  isHovered: boolean
 ) {
   const toolboxSize = canvas.width / 8;
   const margin = 16;
@@ -10,7 +11,9 @@ export function drawToolbox(
   const y = canvas.height - toolboxSize - margin;
 
   // Draw toolbox background
-  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.fillStyle = isHovered
+    ? "rgba(255, 255, 255, 1)"
+    : "rgba(255, 255, 255, 0.9)";
   ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
   ctx.shadowBlur = 10;
   ctx.shadowOffsetX = 0;
@@ -26,8 +29,8 @@ export function drawToolbox(
   ctx.shadowOffsetY = 0;
 
   // Draw border
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = isHovered ? "rgba(0, 0, 0, 0.2)" : "rgba(0, 0, 0, 0.1)";
+  ctx.lineWidth = 2;
   ctx.stroke();
 
   // Draw icon
@@ -114,3 +117,21 @@ function drawTrashIcon(
 
   ctx.restore();
 }
+
+export function isOverToolbox(
+  x: number,
+  y: number,
+  canvas: HTMLCanvasElement
+): boolean {
+  const toolboxSize = canvas.width / 8;
+  const margin = 16;
+  const toolboxX = canvas.width - toolboxSize - margin;
+  const toolboxY = canvas.height - toolboxSize - margin;
+  return (
+    x >= toolboxX &&
+    x <= toolboxX + toolboxSize &&
+    y >= toolboxY &&
+    y <= toolboxY + toolboxSize
+  );
+}
+
