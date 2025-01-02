@@ -47,6 +47,7 @@ export default function PhaseArrayVisualizer() {
   const [showEmissionCircles, setShowEmissionCircles] = useState(false);
   const [waveSpeed, setWaveSpeed] = useState(2);
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
+  const [showGainChart, setShowGainChart] = useState(true);
 
   useEffect(() => {
     setConfigurations(loadConfigurations());
@@ -99,6 +100,8 @@ export default function PhaseArrayVisualizer() {
         setShowWaves={setShowWaves}
         showEmissionCircles={showEmissionCircles}
         setShowEmissionCircles={setShowEmissionCircles}
+        showGainChart={showGainChart}
+        setShowGainChart={setShowGainChart}
         waveSpeed={waveSpeed}
         setWaveSpeed={setWaveSpeed}
         onSaveConfiguration={handleSaveConfiguration}
@@ -115,6 +118,7 @@ export default function PhaseArrayVisualizer() {
     [
       showWaves,
       showEmissionCircles,
+      showGainChart,
       waveSpeed,
       configurations,
       antennas,
@@ -142,6 +146,7 @@ export default function PhaseArrayVisualizer() {
                 showWaves={showWaves}
                 showEmissionCircles={showEmissionCircles}
                 waveSpeed={waveSpeed}
+                showGainChart={showGainChart}
               />
             </div>
           </div>

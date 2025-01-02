@@ -15,6 +15,8 @@ interface ControlPanelProps {
   setShowWaves: (show: boolean) => void;
   showEmissionCircles: boolean;
   setShowEmissionCircles: (show: boolean) => void;
+  showGainChart: boolean;
+  setShowGainChart: (show: boolean) => void;
   waveSpeed: number;
   setWaveSpeed: (speed: number) => void;
   onSaveConfiguration: (name: string) => void;
@@ -33,6 +35,8 @@ export function ControlPanel({
   setShowWaves,
   showEmissionCircles,
   setShowEmissionCircles,
+  showGainChart,
+  setShowGainChart,
   waveSpeed,
   setWaveSpeed,
   onSaveConfiguration,
@@ -256,6 +260,14 @@ export function ControlPanel({
           id="show-emission-circles"
           checked={showEmissionCircles}
           onCheckedChange={setShowEmissionCircles}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label htmlFor="show-gain-chart">Show Gain Chart</Label>
+        <Switch
+          id="show-gain-chart"
+          checked={showGainChart}
+          onCheckedChange={setShowGainChart}
         />
       </div>
       <div>

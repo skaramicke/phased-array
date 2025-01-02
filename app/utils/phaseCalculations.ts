@@ -79,3 +79,35 @@ export function calculatePhases(
     return { ...antenna, phase: (phase + 360) % 360 }; // Ensure phase is always positive
   });
 }
+
+export function calculateGainChartData(antennas: Antenna[]) {
+  const centerAntennaX =
+    antennas.reduce((sum, ant) => sum + ant.x, 0) / antennas.length;
+  const centerAntennaY =
+    antennas.reduce((sum, ant) => sum + ant.y, 0) / antennas.length;
+
+  const gainValues = [];
+  let maxGain = 0;
+
+  for (let angle = 0; angle < 360; angle++) {
+    const radian = (angle * Math.PI) / 180;
+    let gainReal = 0;
+    let gainImag = 0;
+
+    for (const antenna of antennas) {
+      const dx = antenna.x - centerAntennaX;
+      const dy = antenna.y - centerAntennaY;
+      const distance = -dx * Math.cos(radian) + dy * Math.sin(radian);
+      const phase = (antenna.phase * Math.PI) / 180;
+      gainReal += Math.cos(2 * Math.PI * distance + phase);
+      gainImag += Math.sin(2 * Math.PI * distance + phase);
+    }
+
+    const gain =
+      Math.sqrt(gainReal * gainReal + gainImag * gainImag) / antennas.length;
+    gainValues.push(gain);
+    if (gain > maxGain) maxGain = gain;
+  }
+
+  return { gainValues, maxGain };
+}

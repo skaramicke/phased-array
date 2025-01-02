@@ -1,18 +1,21 @@
-"use client";
-
-import { useRef, useEffect, useCallback, useMemo, useState } from "react";
+import { useRef, useEffect, useCallback, useMemo } from "react";
 import { Antenna } from "../types";
+import { drawGrid } from "../drawing/grid";
+import { drawPropagation, drawEmissionCircles } from "../drawing/propagation";
 import {
-  drawPropagation,
-  drawEmissionCircles,
   drawAntennas,
   drawTarget,
-  drawGrid,
-  drawToolbox,
   drawDraggingAntenna,
-  drawAntennaIcon,
-  drawHelpMessage,
-} from "../utils/drawing";
+} from "../drawing/antennas";
+import { drawToolbox, drawAntennaIcon } from "../drawing/toolbox";
+import { drawHelpMessage } from "../drawing/help";
+import { drawGainChart } from "../drawing/gain-chart";
+import { usePhaseArray } from "../hooks/usePhaseArray";
+import {
+  canvasToWorld,
+  worldToCanvas,
+  isOverToolbox,
+} from "../utils/canvasUtils";
 
 type TouchStartHandler = (event: TouchEvent) => void;
 type TouchMoveHandler = (event: TouchEvent) => void;
@@ -26,6 +29,7 @@ interface PhaseArrayCanvasProps {
   showWaves: boolean;
   showEmissionCircles: boolean;
   waveSpeed: number;
+  showGainChart: boolean;
 }
 
 export function PhaseArrayCanvas({
@@ -36,59 +40,30 @@ export function PhaseArrayCanvas({
   showWaves,
   showEmissionCircles,
   waveSpeed,
+  showGainChart,
 }: PhaseArrayCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const timeRef = useRef<number>(0);
-  const draggingAntennaRef = useRef<Antenna | null>(null);
-  const isDraggingRef = useRef(false);
-  const draggingPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const dragOffsetRef = useRef<{ x: number; y: number } | null>(null);
-  const [draggingAntennaIndex, setDraggingAntennaIndex] = useState<
-    number | null
-  >(null);
-  const [isNewAntenna, setIsNewAntenna] = useState(false);
-  const [showTrashCan, setShowTrashCan] = useState(false);
-  const cursorPositionRef = useRef<{ x: number; y: number } | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [wasDragging, setWasDragging] = useState(false);
 
-  const canvasToWorld = useCallback(
-    (canvasX: number, canvasY: number, canvas: HTMLCanvasElement) => {
-      const gridSize = 10;
-      const wavelengthPixels = canvas.width / gridSize;
-      const worldX = (canvasX - canvas.width / 2) / wavelengthPixels;
-      const worldY = (canvas.height / 2 - canvasY) / wavelengthPixels;
-      return { x: worldX, y: worldY };
-    },
-    []
-  );
-
-  const worldToCanvas = useCallback(
-    (worldX: number, worldY: number, canvas: HTMLCanvasElement) => {
-      const gridSize = 10;
-      const wavelengthPixels = canvas.width / gridSize;
-      const canvasX = worldX * wavelengthPixels + canvas.width / 2;
-      const canvasY = canvas.height / 2 - worldY * wavelengthPixels;
-      return { x: canvasX, y: canvasY };
-    },
-    []
-  );
-
-  const isOverToolbox = useCallback(
-    (x: number, y: number, canvas: HTMLCanvasElement): boolean => {
-      const toolboxSize = canvas.width / 8;
-      const margin = 16;
-      return (
-        x >= canvas.width - toolboxSize - margin &&
-        x <= canvas.width - margin &&
-        y >= canvas.height - toolboxSize - margin &&
-        y <= canvas.height - margin
-      );
-    },
-    []
-  );
+  const {
+    draggingAntennaIndex,
+    isNewAntenna,
+    setIsNewAntenna,
+    showTrashCan,
+    wasDragging,
+    setWasDragging,
+    draggingAntennaRef,
+    isDraggingRef,
+    draggingPositionRef,
+    dragOffsetRef,
+    cursorPositionRef,
+    memoizedGainChartData,
+    handleStartDragging,
+    handleStopDragging,
+  } = usePhaseArray(antennas, target, setAntennas);
 
   const drawOverlay = useCallback(
     (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
@@ -147,6 +122,10 @@ export function PhaseArrayCanvas({
           isDraggingRef.current,
           draggingAntennaIndex
         );
+
+        if (showGainChart && memoizedGainChartData) {
+          drawGainChart(ctx, canvas, memoizedGainChartData);
+        }
       }
 
       if (target) {
@@ -195,15 +174,17 @@ export function PhaseArrayCanvas({
     [
       antennas,
       target,
+      isDraggingRef,
+      draggingPositionRef,
+      dragOffsetRef,
+      showTrashCan,
       showWaves,
       showEmissionCircles,
-      waveSpeed,
       draggingAntennaIndex,
-      showTrashCan,
-      isOverToolbox,
-      worldToCanvas,
+      showGainChart,
+      memoizedGainChartData,
+      waveSpeed,
       drawOverlay,
-      drawHelpMessage,
     ]
   );
 
@@ -233,7 +214,7 @@ export function PhaseArrayCanvas({
     ctx.drawImage(offscreenCanvas, 0, 0);
 
     animationRef.current = requestAnimationFrame(animate);
-  }, [draw, waveSpeed]);
+  }, [draw, waveSpeed, cursorPositionRef]);
 
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -274,11 +255,8 @@ export function PhaseArrayCanvas({
       const { x, y } = canvasToWorld(canvasX, canvasY, canvas);
 
       if (isOverToolbox(canvasX, canvasY, canvas)) {
-        isDraggingRef.current = true;
-        draggingPositionRef.current = { x, y };
-        dragOffsetRef.current = { x: 0, y: 0 };
+        handleStartDragging(null, { x, y }, { x: 0, y: 0 });
         setIsNewAntenna(true);
-        setShowTrashCan(true);
       } else {
         for (let i = 0; i < antennas.length; i++) {
           const antenna = antennas[i];
@@ -287,17 +265,17 @@ export function PhaseArrayCanvas({
           );
           if (distance < 0.25) {
             draggingAntennaRef.current = antenna;
-            isDraggingRef.current = true;
-            draggingPositionRef.current = { x: antenna.x, y: antenna.y };
-            dragOffsetRef.current = { x: x - antenna.x, y: y - antenna.y };
-            setDraggingAntennaIndex(i);
-            setShowTrashCan(true);
+            handleStartDragging(
+              i,
+              { x: antenna.x, y: antenna.y },
+              { x: x - antenna.x, y: y - antenna.y }
+            );
             return;
           }
         }
       }
     },
-    [antennas, canvasToWorld, isOverToolbox]
+    [antennas, handleStartDragging, setIsNewAntenna, draggingAntennaRef]
   );
 
   const handleCanvasMouseMove = useCallback(
@@ -320,7 +298,7 @@ export function PhaseArrayCanvas({
         };
       }
     },
-    [canvasToWorld]
+    [cursorPositionRef, dragOffsetRef, draggingPositionRef, isDraggingRef]
   );
 
   const handleCanvasMouseUp = useCallback(
@@ -351,22 +329,11 @@ export function PhaseArrayCanvas({
             )
           );
         }
-      }
-
-      // Set wasDragging state if we were dragging
-      if (isDraggingRef.current) {
         setWasDragging(true);
         setTimeout(() => setWasDragging(false), 0);
       }
 
-      // Reset dragging state
-      draggingAntennaRef.current = null;
-      isDraggingRef.current = false;
-      draggingPositionRef.current = null;
-      dragOffsetRef.current = null;
-      setDraggingAntennaIndex(null);
-      setIsNewAntenna(false);
-      setShowTrashCan(false);
+      handleStopDragging();
 
       // If we were dragging, prevent the click event from firing
       if (isDraggingRef.current) {
@@ -375,11 +342,13 @@ export function PhaseArrayCanvas({
       }
     },
     [
-      draggingAntennaIndex,
+      isDraggingRef,
+      draggingPositionRef,
+      handleStopDragging,
       isNewAntenna,
-      isOverToolbox,
+      setWasDragging,
       setAntennas,
-      worldToCanvas,
+      draggingAntennaIndex,
     ]
   );
 
@@ -400,7 +369,7 @@ export function PhaseArrayCanvas({
         setTarget({ x, y });
       }
     },
-    [antennas.length, canvasToWorld, setTarget, wasDragging]
+    [antennas.length, wasDragging, setTarget]
   );
 
   const nativeHandleCanvasTouchStart: TouchStartHandler = useCallback(
@@ -417,11 +386,8 @@ export function PhaseArrayCanvas({
       const { x, y } = canvasToWorld(canvasX, canvasY, canvas);
 
       if (isOverToolbox(canvasX, canvasY, canvas)) {
-        isDraggingRef.current = true;
-        draggingPositionRef.current = { x, y };
-        dragOffsetRef.current = { x: 0, y: 0 };
+        handleStartDragging(null, { x, y }, { x: 0, y: 0 });
         setIsNewAntenna(true);
-        setShowTrashCan(true);
       } else {
         for (let i = 0; i < antennas.length; i++) {
           const antenna = antennas[i];
@@ -430,17 +396,17 @@ export function PhaseArrayCanvas({
           );
           if (distance < 0.25) {
             draggingAntennaRef.current = antenna;
-            isDraggingRef.current = true;
-            draggingPositionRef.current = { x: antenna.x, y: antenna.y };
-            dragOffsetRef.current = { x: x - antenna.x, y: y - antenna.y };
-            setDraggingAntennaIndex(i);
-            setShowTrashCan(true);
+            handleStartDragging(
+              i,
+              { x: antenna.x, y: antenna.y },
+              { x: x - antenna.x, y: y - antenna.y }
+            );
             return;
           }
         }
       }
     },
-    [antennas, canvasToWorld, isOverToolbox]
+    [antennas, handleStartDragging, setIsNewAntenna, draggingAntennaRef]
   );
 
   const nativeHandleCanvasTouchMove: TouchMoveHandler = useCallback(
@@ -465,7 +431,7 @@ export function PhaseArrayCanvas({
         };
       }
     },
-    [canvasToWorld]
+    [cursorPositionRef, dragOffsetRef, draggingPositionRef, isDraggingRef]
   );
 
   const nativeHandleCanvasTouchEnd: TouchEndHandler = useCallback(
