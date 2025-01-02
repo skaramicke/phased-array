@@ -143,12 +143,6 @@ export function PhaseArrayCanvas({
           isOverToolbox(cursorPosition.x, cursorPosition.y, canvas)
         ) {
           // Draw antenna symbol at cursor position when over toolbox
-          drawAntennaIcon(
-            ctx,
-            cursorPosition.x,
-            cursorPosition.y,
-            wavelengthPixels / 2
-          );
         } else {
           // Draw dragging antenna
           drawDraggingAntenna(
@@ -177,6 +171,23 @@ export function PhaseArrayCanvas({
         showTrashCan,
         isToolboxHovered
       );
+
+      // Draw antenna icon when dragging over toolbox
+      if (
+        isDraggingRef.current &&
+        draggingPositionRef.current &&
+        dragOffsetRef.current &&
+        cursorPosition &&
+        isOverToolbox(cursorPosition.x, cursorPosition.y, canvas)
+      ) {
+        const iconSize = wavelengthPixels * 0.75; // Increased size for better visibility
+        drawAntennaIcon(
+          ctx,
+          cursorPosition.x - iconSize / 2, // Center horizontally
+          cursorPosition.y - iconSize / 2, // Center vertically
+          iconSize
+        );
+      }
     },
     [
       antennas,
