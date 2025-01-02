@@ -30,6 +30,7 @@ interface PhaseArrayCanvasProps {
   showEmissionCircles: boolean;
   waveSpeed: number;
   showGainChart: boolean;
+  selectedAntennaIndex: number | null;
 }
 
 export function PhaseArrayCanvas({
@@ -41,6 +42,7 @@ export function PhaseArrayCanvas({
   showEmissionCircles,
   waveSpeed,
   showGainChart,
+  selectedAntennaIndex,
 }: PhaseArrayCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -121,7 +123,8 @@ export function PhaseArrayCanvas({
           antennas,
           wavelengthPixels,
           isDraggingRef.current,
-          draggingAntennaIndex
+          draggingAntennaIndex,
+          selectedAntennaIndex
         );
 
         if (showGainChart && memoizedGainChartData) {
@@ -204,6 +207,7 @@ export function PhaseArrayCanvas({
       waveSpeed,
       drawOverlay,
       isToolboxHovered,
+      selectedAntennaIndex,
     ]
   );
 

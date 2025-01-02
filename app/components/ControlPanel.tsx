@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, KeyboardEvent } from "react";
+import React, { useState, useEffect, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,8 @@ interface ControlPanelProps {
   setAntennas: (antennas: Antenna[]) => void;
   target: { x: number; y: number } | null;
   setTarget: (target: { x: number; y: number } | null) => void;
+  selectedAntennaIndex: number | null;
+  setSelectedAntennaIndex: (index: number | null) => void;
 }
 
 export function ControlPanel({
@@ -48,6 +50,8 @@ export function ControlPanel({
   setAntennas,
   target,
   setTarget,
+  selectedAntennaIndex,
+  setSelectedAntennaIndex,
 }: ControlPanelProps) {
   const [configName, setConfigName] = useState("");
   const [editingAntennas, setEditingAntennas] = useState<{
@@ -61,12 +65,6 @@ export function ControlPanel({
   useEffect(() => {
     setEditingAntennas({});
   }, [antennas]);
-
-  useEffect(() => {
-    setEditingTarget(
-      target ? { x: target.x.toString(), y: target.y.toString() } : null
-    );
-  }, [target]);
 
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -84,9 +82,11 @@ export function ControlPanel({
       ...prev,
       [`${index}-${field}`]: value,
     }));
+    setSelectedAntennaIndex(index);
   };
 
   const commitAntennaChange = (index: number, field: keyof Antenna) => {
+    setSelectedAntennaIndex(null);
     const value = editingAntennas[`${index}-${field}`];
     if (value !== undefined) {
       const parsedValue = parseFloat(value);
@@ -141,6 +141,7 @@ export function ControlPanel({
       if (!isNaN(x) && !isNaN(y)) {
         setTarget({ x, y });
       }
+      setEditingTarget(null);
     }
   };
 
@@ -152,95 +153,177 @@ export function ControlPanel({
 
   return (
     <div className="space-y-6 p-4 pt-8 bg-white relative">
-      {target && (
+      {target ? (
         <div>
-          <Label>Target</Label>
-          <div className="flex space-x-2 mt-2">
-            <Input
-              type="number"
-              value={editingTarget?.x ?? target.x.toFixed(2)}
-              onChange={(e) => handleTargetChange("x", e.target.value)}
-              onBlur={commitTargetChange}
-              onKeyDown={handleTargetKeyDown}
-              className="flex-1"
-              placeholder="X (wavelengths)"
-            />
-            <span className="flex items-center">λ</span>
-            <Input
-              type="number"
-              value={editingTarget?.y ?? target.y.toFixed(2)}
-              onChange={(e) => handleTargetChange("y", e.target.value)}
-              onBlur={commitTargetChange}
-              onKeyDown={handleTargetKeyDown}
-              className="flex-1"
-              placeholder="Y (wavelengths)"
-            />
-            <span className="flex items-center">λ</span>
+          <Label className="text-lg font-semibold">Target</Label>
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 text-sm text-center">
+            <div className="font-semibold">East/West</div>
+            <div className="font-semibold">North/South</div>
+            <div className="flex items-center justify-center">
+              <Trash2 className="w-4 h-4" />
+            </div>
+            <div className="flex space-x-2 items-center">
+              <Input
+                type="number"
+                value={editingTarget?.x ?? target.x.toFixed(2)}
+                onChange={(e) => handleTargetChange("x", e.target.value)}
+                onFocus={() =>
+                  setEditingTarget({
+                    x: target.x.toString(),
+                    y: target.y.toString(),
+                  })
+                }
+                onBlur={commitTargetChange}
+                onKeyDown={handleTargetKeyDown}
+                className="flex-1 text-right"
+                placeholder="X (wavelengths)"
+              />
+              <span className="flex items-center">λ</span>
+            </div>
+            <div className="flex space-x-2 items-center">
+              <Input
+                type="number"
+                value={editingTarget?.y ?? target.y.toFixed(2)}
+                onChange={(e) => handleTargetChange("y", e.target.value)}
+                onFocus={() =>
+                  setEditingTarget({
+                    x: target.x.toString(),
+                    y: target.y.toString(),
+                  })
+                }
+                onBlur={commitTargetChange}
+                onKeyDown={handleTargetKeyDown}
+                className="flex-1 text-right"
+                placeholder="Y (wavelengths)"
+              />
+              <span className="flex items-center">λ</span>
+            </div>
             <Button
               onClick={() => setTarget(null)}
               variant="destructive"
               className="flex items-center justify-center"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Remove Target
+              <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
+      ) : (
+        <div className="text-sm text-gray-800 text-center">
+          Click canvas to set a target
+        </div>
       )}
       <div>
-        <Label>Antennas</Label>
+        <Label className="text-lg font-semibold">
+          Antennas
+          {target && (
+            <span className="font-normal text-sm ml-2 text-gray-800">
+              (Remove target to edit phase)
+            </span>
+          )}
+        </Label>
         <div className="space-y-4 mt-2">
-          <div className="grid grid-cols-4 gap-2 font-semibold text-sm">
-            <div>X (wavelengths)</div>
-            <div>Y (wavelengths)</div>
-            <div>Phase (degrees)</div>
-            <div>Actions</div>
-          </div>
-          {antennas.map((antenna, index) => (
-            <div key={index} className="grid grid-cols-4 gap-2 items-center">
-              <Input
-                type="number"
-                value={editingAntennas[`${index}-x`] ?? antenna.x.toFixed(2)}
-                onChange={(e) =>
-                  handleAntennaChange(index, "x", e.target.value)
-                }
-                onBlur={() => commitAntennaChange(index, "x")}
-                onKeyDown={(e) => handleAntennaKeyDown(e, index, "x")}
-                className="w-full"
-              />
-              <Input
-                type="number"
-                value={editingAntennas[`${index}-y`] ?? antenna.y.toFixed(2)}
-                onChange={(e) =>
-                  handleAntennaChange(index, "y", e.target.value)
-                }
-                onBlur={() => commitAntennaChange(index, "y")}
-                onKeyDown={(e) => handleAntennaKeyDown(e, index, "y")}
-                className="w-full"
-              />
-              <Input
-                type="number"
-                value={
-                  editingAntennas[`${index}-phase`] ?? antenna.phase.toFixed(1)
-                }
-                onChange={(e) =>
-                  handleAntennaChange(index, "phase", e.target.value)
-                }
-                onBlur={() => commitAntennaChange(index, "phase")}
-                onKeyDown={(e) => handleAntennaKeyDown(e, index, "phase")}
-                disabled={!!target}
-                className="w-full"
-              />
-              <Button
-                onClick={() => handleRemoveAntenna(index)}
-                variant="destructive"
-                className="w-full flex items-center justify-center"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Remove
-              </Button>
+          <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 text-sm text-center">
+            <div className="font-semibold">East/West</div>
+            <div className="font-semibold">North/South</div>
+            <div className="font-semibold">Phase</div>
+            <div className="flex items-center justify-center">
+              <Trash2 className="w-4 h-4" />
             </div>
-          ))}
+            {antennas.map((antenna, index) => (
+              <React.Fragment key={index}>
+                <div className="flex space-x-2 items-center">
+                  <Input
+                    id={`antenna-${index}-x`}
+                    type="number"
+                    value={
+                      editingAntennas[`${index}-x`] ?? antenna.x.toFixed(2)
+                    }
+                    onChange={(e) =>
+                      handleAntennaChange(index, "x", e.target.value)
+                    }
+                    onBlur={() => commitAntennaChange(index, "x")}
+                    onFocus={() => {
+                      setEditingAntennas((prev) => ({
+                        ...prev,
+                        [`${index}-x`]: antenna.x.toString(),
+                      }));
+                      setSelectedAntennaIndex(index);
+                    }}
+                    onKeyDown={(e) => handleAntennaKeyDown(e, index, "x")}
+                    className={`w-full text-right ${
+                      selectedAntennaIndex === index
+                        ? "ring-2 ring-blue-500"
+                        : ""
+                    }`}
+                  />
+                  <span className="flex items-center">λ</span>
+                </div>
+                <div className="flex space-x-2 items-center">
+                  <Input
+                    id={`antenna-${index}-y`}
+                    type="number"
+                    value={
+                      editingAntennas[`${index}-y`] ?? antenna.y.toFixed(2)
+                    }
+                    onChange={(e) =>
+                      handleAntennaChange(index, "y", e.target.value)
+                    }
+                    onFocus={() => {
+                      setEditingAntennas((prev) => ({
+                        ...prev,
+                        [`${index}-y`]: antenna.y.toString(),
+                      }));
+                      setSelectedAntennaIndex(index);
+                    }}
+                    onBlur={() => commitAntennaChange(index, "y")}
+                    onKeyDown={(e) => handleAntennaKeyDown(e, index, "y")}
+                    className={`w-full text-right ${
+                      selectedAntennaIndex === index
+                        ? "ring-2 ring-blue-500"
+                        : ""
+                    }`}
+                  />
+                  <span className="flex items-center">λ</span>
+                </div>
+                <div className="flex space-x-2 items-center">
+                  <Input
+                    id={`antenna-${index}-phase`}
+                    type="number"
+                    value={
+                      editingAntennas[`${index}-phase`] ??
+                      antenna.phase.toFixed(1)
+                    }
+                    onChange={(e) =>
+                      handleAntennaChange(index, "phase", e.target.value)
+                    }
+                    onFocus={() => {
+                      setEditingAntennas((prev) => ({
+                        ...prev,
+                        [`${index}-phase`]: antenna.phase.toString(),
+                      }));
+                      setSelectedAntennaIndex(index);
+                    }}
+                    onBlur={() => commitAntennaChange(index, "phase")}
+                    onKeyDown={(e) => handleAntennaKeyDown(e, index, "phase")}
+                    disabled={!!target}
+                    className={`w-full text-right ${
+                      selectedAntennaIndex === index
+                        ? "ring-2 ring-blue-500"
+                        : ""
+                    }`}
+                  />
+                  <span className="flex items-center">°</span>
+                </div>
+                <Button
+                  onClick={() => handleRemoveAntenna(index)}
+                  variant="destructive"
+                  className="w-full flex items-center justify-center"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </React.Fragment>
+            ))}
+          </div>
           <Button onClick={handleAddAntenna} className="w-full">
             Add Antenna
           </Button>

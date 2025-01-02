@@ -5,9 +5,12 @@ export function drawAntennas(
   antennas: Antenna[],
   wavelengthPixels: number,
   isDragging: boolean,
-  draggingAntennaId: number | null
+  draggingAntennaId: number | null,
+  selectedAntennaIndex: number | null
 ) {
   if (antennas.length === 0) return;
+
+  const fractionOfSecond = (performance.now() / 1000) % 1;
 
   const canvas = ctx.canvas;
   const centerX = canvas.width / 2;
@@ -37,6 +40,15 @@ export function drawAntennas(
         ? "rgba(0, 0, 255, 0.5)"
         : "rgba(0, 0, 255, 0.8)";
       ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Highlight selected antenna
+    if (index === selectedAntennaIndex) {
+      ctx.beginPath();
+      ctx.arc(x, y, wavelengthPixels / 3, 0, 2 * Math.PI);
+      ctx.strokeStyle = "rgba(157, 56, 13, 0.8)"; // Gold color
+      ctx.lineWidth = 4.5 + 1.5 * Math.sin(fractionOfSecond * 2 * Math.PI);
       ctx.stroke();
     }
 

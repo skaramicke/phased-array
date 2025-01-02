@@ -47,7 +47,10 @@ export default function PhaseArrayVisualizer() {
   const [showEmissionCircles, setShowEmissionCircles] = useState(false);
   const [waveSpeed, setWaveSpeed] = useState(2);
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
-  const [showGainChart, setShowGainChart] = useState(true);
+  const [showGainChart, setShowGainChart] = useState(false);
+  const [selectedAntennaIndex, setSelectedAntennaIndex] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     setConfigurations(loadConfigurations());
@@ -113,6 +116,8 @@ export default function PhaseArrayVisualizer() {
         setAntennas={setAntennas}
         target={target}
         setTarget={handleSetTarget}
+        selectedAntennaIndex={selectedAntennaIndex}
+        setSelectedAntennaIndex={setSelectedAntennaIndex}
       />
     ),
     [
@@ -129,6 +134,8 @@ export default function PhaseArrayVisualizer() {
       handleImportConfiguration,
       setAntennas,
       handleSetTarget,
+      selectedAntennaIndex,
+      setSelectedAntennaIndex,
     ]
   );
 
@@ -147,6 +154,7 @@ export default function PhaseArrayVisualizer() {
                 showEmissionCircles={showEmissionCircles}
                 waveSpeed={waveSpeed}
                 showGainChart={showGainChart}
+                selectedAntennaIndex={selectedAntennaIndex}
               />
             </div>
           </div>
