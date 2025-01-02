@@ -1,4 +1,21 @@
+import { Antenna } from "../types";
+import { worldToCanvas } from "../utils/canvasUtils";
+
 export function drawGainChart(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  gainChartData: { gainValues: number[]; maxGain: number },
+  mode: "widget" | "overlay",
+  antennas?: Antenna[]
+) {
+  if (mode === "widget") {
+    drawWidgetGainChart(ctx, canvas, gainChartData);
+  } else if (mode === "overlay") {
+    drawOverlayGainChart(ctx, canvas, gainChartData, antennas!);
+  }
+}
+
+function drawWidgetGainChart(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   gainChartData: { gainValues: number[]; maxGain: number }
@@ -14,6 +31,83 @@ export function drawGainChart(
   ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
   ctx.fillRect(chartX, chartY, chartSize, chartSize);
 
+  drawGainChartContent(ctx, centerX, centerY, radius, gainChartData);
+
+  // Draw chart border
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(chartX, chartY, chartSize, chartSize);
+
+  // Add labels
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.font = "12px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("0°", centerX, chartY + 15);
+  ctx.fillText("90°", chartX + chartSize - 15, centerY);
+  ctx.fillText("180°", centerX, chartY + chartSize - 5);
+  ctx.fillText("270°", chartX + 15, centerY);
+}
+
+function drawOverlayGainChart(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  gainChartData: { gainValues: number[]; maxGain: number },
+  antennas: Antenna[]
+) {
+  // Calculate antenna cluster center
+  const clusterCenter = antennas.reduce(
+    (acc, ant) => ({ x: acc.x + ant.x, y: acc.y + ant.y }),
+    { x: 0, y: 0 }
+  );
+  clusterCenter.x /= antennas.length;
+  clusterCenter.y /= antennas.length;
+
+  // Convert cluster center to canvas coordinates
+  const { x: clusterCenterX, y: clusterCenterY } = worldToCanvas(
+    clusterCenter.x,
+    clusterCenter.y,
+    canvas
+  );
+
+  // Calculate the diameter of the gain chart
+  const diameter = Math.min(canvas.width, canvas.height) - 20; // 10px margin on each side
+  const radius = diameter / 2;
+
+  // Draw semi-transparent background
+  ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+  ctx.beginPath();
+  ctx.arc(clusterCenterX, clusterCenterY, radius, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Save the current context state
+  ctx.save();
+
+  // Translate the context to the cluster center
+  ctx.translate(clusterCenterX, clusterCenterY);
+
+  // Draw the gain chart content
+  drawGainChartContent(ctx, 0, 0, radius, gainChartData);
+
+  // Restore the context state
+  ctx.restore();
+
+  // Add labels
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.font = "12px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("0°", clusterCenterX, clusterCenterY - radius - 5);
+  ctx.fillText("90°", clusterCenterX + radius + 5, clusterCenterY);
+  ctx.fillText("180°", clusterCenterX, clusterCenterY + radius + 15);
+  ctx.fillText("270°", clusterCenterX - radius - 5, clusterCenterY);
+}
+
+function drawGainChartContent(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  gainChartData: { gainValues: number[]; maxGain: number }
+) {
   // Draw polar grid
   ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
   ctx.beginPath();
@@ -57,18 +151,4 @@ export function drawGainChart(
     ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
     ctx.fill();
   }
-
-  // Draw chart border
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(chartX, chartY, chartSize, chartSize);
-
-  // Add labels
-  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-  ctx.font = "12px Arial";
-  ctx.textAlign = "center";
-  ctx.fillText("0°", centerX, chartY + 15);
-  ctx.fillText("90°", chartX + chartSize - 15, centerY);
-  ctx.fillText("180°", centerX, chartY + chartSize - 5);
-  ctx.fillText("270°", chartX + 15, centerY);
 }

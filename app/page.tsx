@@ -47,7 +47,9 @@ export default function PhaseArrayVisualizer() {
   const [showEmissionCircles, setShowEmissionCircles] = useState(false);
   const [waveSpeed, setWaveSpeed] = useState(2);
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
-  const [showGainChart, setShowGainChart] = useState(false);
+  const [gainChartMode, setGainChartMode] = useState<
+    "none" | "widget" | "overlay"
+  >("overlay");
   const [selectedAntennaIndex, setSelectedAntennaIndex] = useState<
     number | null
   >(null);
@@ -103,8 +105,8 @@ export default function PhaseArrayVisualizer() {
         setShowWaves={setShowWaves}
         showEmissionCircles={showEmissionCircles}
         setShowEmissionCircles={setShowEmissionCircles}
-        showGainChart={showGainChart}
-        setShowGainChart={setShowGainChart}
+        gainChartMode={gainChartMode}
+        setGainChartMode={setGainChartMode}
         waveSpeed={waveSpeed}
         setWaveSpeed={setWaveSpeed}
         onSaveConfiguration={handleSaveConfiguration}
@@ -123,7 +125,7 @@ export default function PhaseArrayVisualizer() {
     [
       showWaves,
       showEmissionCircles,
-      showGainChart,
+      gainChartMode,
       waveSpeed,
       configurations,
       antennas,
@@ -153,7 +155,7 @@ export default function PhaseArrayVisualizer() {
                 showWaves={showWaves}
                 showEmissionCircles={showEmissionCircles}
                 waveSpeed={waveSpeed}
-                showGainChart={showGainChart}
+                gainChartMode={gainChartMode}
                 selectedAntennaIndex={selectedAntennaIndex}
               />
             </div>
@@ -164,3 +166,4 @@ export default function PhaseArrayVisualizer() {
     </div>
   );
 }
+

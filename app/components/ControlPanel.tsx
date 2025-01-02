@@ -15,8 +15,8 @@ interface ControlPanelProps {
   setShowWaves: (show: boolean) => void;
   showEmissionCircles: boolean;
   setShowEmissionCircles: (show: boolean) => void;
-  showGainChart: boolean;
-  setShowGainChart: (show: boolean) => void;
+  gainChartMode: "none" | "widget" | "overlay";
+  setGainChartMode: (mode: "none" | "widget" | "overlay") => void;
   waveSpeed: number;
   setWaveSpeed: (speed: number) => void;
   onSaveConfiguration: (name: string) => void;
@@ -37,8 +37,8 @@ export function ControlPanel({
   setShowWaves,
   showEmissionCircles,
   setShowEmissionCircles,
-  showGainChart,
-  setShowGainChart,
+  gainChartMode,
+  setGainChartMode,
   waveSpeed,
   setWaveSpeed,
   onSaveConfiguration,
@@ -345,13 +345,37 @@ export function ControlPanel({
           onCheckedChange={setShowEmissionCircles}
         />
       </div>
-      <div className="flex items-center justify-between">
-        <Label htmlFor="show-gain-chart">Show Gain Chart</Label>
-        <Switch
-          id="show-gain-chart"
-          checked={showGainChart}
-          onCheckedChange={setShowGainChart}
-        />
+      <div>
+        <Label>Gain Chart Display</Label>
+        <div className="flex space-x-4 mt-2">
+          <label className="flex items-center space-x-2">
+            <input
+              type="radio"
+              value="none"
+              checked={gainChartMode === "none"}
+              onChange={() => setGainChartMode("none")}
+            />
+            <span>None</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="radio"
+              value="widget"
+              checked={gainChartMode === "widget"}
+              onChange={() => setGainChartMode("widget")}
+            />
+            <span>Widget</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="radio"
+              value="overlay"
+              checked={gainChartMode === "overlay"}
+              onChange={() => setGainChartMode("overlay")}
+            />
+            <span>Overlay</span>
+          </label>
+        </div>
       </div>
       <div>
         <Label htmlFor="wave-speed">Wave Speed</Label>
@@ -423,3 +447,4 @@ export function ControlPanel({
     </div>
   );
 }
+

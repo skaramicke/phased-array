@@ -29,7 +29,7 @@ interface PhaseArrayCanvasProps {
   showWaves: boolean;
   showEmissionCircles: boolean;
   waveSpeed: number;
-  showGainChart: boolean;
+  gainChartMode: "none" | "widget" | "overlay";
   selectedAntennaIndex: number | null;
 }
 
@@ -41,7 +41,7 @@ export function PhaseArrayCanvas({
   showWaves,
   showEmissionCircles,
   waveSpeed,
-  showGainChart,
+  gainChartMode,
   selectedAntennaIndex,
 }: PhaseArrayCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -118,6 +118,21 @@ export function PhaseArrayCanvas({
           );
         }
 
+        if (antennas.length > 0 && memoizedGainChartData) {
+          if (gainChartMode === "widget") {
+            drawGainChart(ctx, canvas, memoizedGainChartData, "widget");
+          } else if (gainChartMode === "overlay") {
+            drawGainChart(
+              ctx,
+              canvas,
+              memoizedGainChartData,
+              "overlay",
+              antennas
+            );
+          }
+        }
+
+        // Draw antennas after the gain chart overlay
         drawAntennas(
           ctx,
           antennas,
@@ -126,10 +141,6 @@ export function PhaseArrayCanvas({
           draggingAntennaIndex,
           selectedAntennaIndex
         );
-
-        if (showGainChart && memoizedGainChartData) {
-          drawGainChart(ctx, canvas, memoizedGainChartData);
-        }
       }
 
       if (target) {
@@ -202,7 +213,7 @@ export function PhaseArrayCanvas({
       showWaves,
       showEmissionCircles,
       draggingAntennaIndex,
-      showGainChart,
+      gainChartMode,
       memoizedGainChartData,
       waveSpeed,
       drawOverlay,
@@ -635,3 +646,4 @@ export function PhaseArrayCanvas({
     </div>
   );
 }
+
