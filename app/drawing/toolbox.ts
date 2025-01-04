@@ -54,28 +54,10 @@ export function drawAntennaIcon(
 ) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(size / 24, size / 24);
-
-  // Draw the vertical line (mast)
-  ctx.beginPath();
-  ctx.moveTo(12, 4);
-  ctx.lineTo(12, 20);
-  ctx.strokeStyle = "rgba(59, 130, 246, 0.8)"; // Blue color
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Draw the dipole elements
-  ctx.beginPath();
-  ctx.moveTo(6, 8);
-  ctx.lineTo(18, 8);
-  ctx.moveTo(8, 12);
-  ctx.lineTo(16, 12);
-  ctx.moveTo(10, 16);
-  ctx.lineTo(14, 16);
-  ctx.strokeStyle = "rgba(59, 130, 246, 0.8)"; // Blue color
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
+  ctx.font = `${size}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("📡", size / 2, size / 2);
   ctx.restore();
 }
 
@@ -87,34 +69,10 @@ function drawTrashIcon(
 ) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(size / 24, size / 24);
-
-  ctx.beginPath();
-  ctx.moveTo(3, 6);
-  ctx.lineTo(21, 6);
-  ctx.moveTo(19, 6);
-  ctx.lineTo(19, 20);
-  ctx.arcTo(19, 21, 18, 21, 1);
-  ctx.lineTo(6, 21);
-  ctx.arcTo(5, 21, 5, 20, 1);
-  ctx.lineTo(5, 6);
-  ctx.moveTo(10, 11);
-  ctx.lineTo(10, 17);
-  ctx.moveTo(14, 11);
-  ctx.lineTo(14, 17);
-  ctx.moveTo(8, 6);
-  ctx.lineTo(8, 4);
-  ctx.arcTo(8, 3, 9, 3, 1);
-  ctx.lineTo(15, 3);
-  ctx.arcTo(16, 3, 16, 4, 1);
-  ctx.lineTo(16, 6);
-
-  ctx.strokeStyle = ctx.fillStyle;
-  ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.stroke();
-
+  ctx.font = `${size}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("🗑️", size / 2, size / 2);
   ctx.restore();
 }
 

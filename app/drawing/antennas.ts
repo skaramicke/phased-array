@@ -23,7 +23,7 @@ export function drawAntennas(
     ctx.beginPath();
     ctx.arc(x, y, wavelengthPixels / 4, 0, 2 * Math.PI);
 
-    if (isDragging && index === draggingAntennaId) {
+    if (index === draggingAntennaId) {
       // Dragging antenna: dashed line circle
       ctx.setLineDash([5, 5]);
       ctx.strokeStyle = "rgba(0, 0, 255, 0.8)";

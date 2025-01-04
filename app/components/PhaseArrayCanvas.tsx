@@ -51,6 +51,11 @@ export function PhaseArrayCanvas({
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isToolboxHovered, setIsToolboxHovered] = useState(false);
 
+  // Add these refs to track panning state without rerenders
+  const isPanningRef = useRef(false);
+  const panStartRef = useRef<{ x: number; y: number } | null>(null);
+  const panOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
   const {
     draggingAntennaIndex,
     isNewAntenna,
@@ -76,6 +81,7 @@ export function PhaseArrayCanvas({
     []
   );
 
+  // Modified draw function to handle all states consistently
   const draw = useCallback(
     (
       ctx: CanvasRenderingContext2D,
@@ -86,39 +92,51 @@ export function PhaseArrayCanvas({
       const gridSize = 10;
       const wavelengthPixels = canvas.width / gridSize;
 
+      // Clear the entire canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Draw the base grid
       drawGrid(ctx, canvas, gridSize);
 
+      // Draw origin marker
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.beginPath();
       ctx.arc(canvas.width / 2, canvas.height / 2, 5, 0, 2 * Math.PI);
       ctx.fill();
 
       if (antennas.length > 0) {
+        const transformedAntennas = antennas.map((antenna) => ({
+          ...antenna,
+          x: antenna.x + (isPanningRef.current ? panOffsetRef.current.x : 0),
+          y: antenna.y - (isPanningRef.current ? panOffsetRef.current.y : 0),
+        }));
+
+        // Draw propagation waves (only when not panning)
         if (showWaves) {
           drawPropagation(
             ctx,
             canvas,
-            antennas,
+            transformedAntennas,
             wavelengthPixels,
             time,
             waveSpeed
           );
         }
 
+        // Draw emission circles (only when not panning)
         if (showEmissionCircles) {
           drawEmissionCircles(
             ctx,
             canvas,
-            antennas,
+            transformedAntennas,
             wavelengthPixels,
             time,
             waveSpeed
           );
         }
 
-        if (antennas.length > 0 && memoizedGainChartData) {
+        // Draw gain chart if needed (only when not panning)
+        if (transformedAntennas.length > 0 && memoizedGainChartData) {
           if (gainChartMode === "widget") {
             drawGainChart(ctx, canvas, memoizedGainChartData, "widget");
           } else if (gainChartMode === "overlay") {
@@ -127,15 +145,15 @@ export function PhaseArrayCanvas({
               canvas,
               memoizedGainChartData,
               "overlay",
-              antennas
+              transformedAntennas
             );
           }
         }
 
-        // Draw antennas after the gain chart overlay
+        // Draw antennas with new positions
         drawAntennas(
           ctx,
-          antennas,
+          transformedAntennas,
           wavelengthPixels,
           isDraggingRef.current,
           draggingAntennaIndex,
@@ -143,10 +161,16 @@ export function PhaseArrayCanvas({
         );
       }
 
+      // Draw target if it exists
       if (target) {
-        drawTarget(ctx, target, wavelengthPixels);
+        const transformedTarget = {
+          x: target.x + (isPanningRef.current ? panOffsetRef.current.x : 0),
+          y: target.y - (isPanningRef.current ? panOffsetRef.current.y : 0),
+        };
+        drawTarget(ctx, transformedTarget, wavelengthPixels);
       }
 
+      // Draw dragging antenna if needed
       if (
         isDraggingRef.current &&
         draggingPositionRef.current &&
@@ -158,7 +182,6 @@ export function PhaseArrayCanvas({
         ) {
           // Draw antenna symbol at cursor position when over toolbox
         } else {
-          // Draw dragging antenna
           drawDraggingAntenna(
             ctx,
             canvas,
@@ -172,12 +195,13 @@ export function PhaseArrayCanvas({
         }
       }
 
+      // Draw help overlay if needed
       if (antennas.length === 0 && !isDraggingRef.current) {
         drawOverlay(ctx, canvas);
         drawHelpMessage(ctx, canvas);
       }
 
-      // Draw toolbox last so it's not dimmed by the overlay
+      // Always draw toolbox last
       drawToolbox(
         ctx,
         canvas,
@@ -194,11 +218,11 @@ export function PhaseArrayCanvas({
         cursorPosition &&
         isOverToolbox(cursorPosition.x, cursorPosition.y, canvas)
       ) {
-        const iconSize = wavelengthPixels * 0.75; // Increased size for better visibility
+        const iconSize = wavelengthPixels * 0.75;
         drawAntennaIcon(
           ctx,
-          cursorPosition.x - iconSize / 2, // Center horizontally
-          cursorPosition.y - iconSize / 2, // Center vertically
+          cursorPosition.x - iconSize / 2,
+          cursorPosition.y - iconSize / 2,
           iconSize
         );
       }
@@ -277,6 +301,34 @@ export function PhaseArrayCanvas({
     canvas.style.height = `${canvasHeight}px`;
   }, []);
 
+  const handlePan = useCallback(
+    (
+      event:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>
+        | globalThis.TouchEvent
+    ) => {
+      if (!isPanningRef.current || !panStartRef.current) return;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const clientX =
+        "touches" in event ? event.touches[0].clientX : event.clientX;
+      const clientY =
+        "touches" in event ? event.touches[0].clientY : event.clientY;
+      const canvasX = (clientX - rect.left) * (canvas.width / rect.width);
+      const canvasY = (clientY - rect.top) * (canvas.height / rect.height);
+
+      const dx = (canvasX - panStartRef.current.x) / (canvas.width / 10);
+      const dy = (canvasY - panStartRef.current.y) / (canvas.height / 10);
+
+      panOffsetRef.current = { x: dx, y: dy };
+    },
+    [] // Empty dependency array since we're using refs
+  );
+
   const handleCanvasMouseDown = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
@@ -292,6 +344,7 @@ export function PhaseArrayCanvas({
         handleStartDragging(null, { x, y }, { x: 0, y: 0 });
         setIsNewAntenna(true);
       } else {
+        let antennaFound = false;
         for (let i = 0; i < antennas.length; i++) {
           const antenna = antennas[i];
           const distance = Math.sqrt(
@@ -304,12 +357,18 @@ export function PhaseArrayCanvas({
               { x: antenna.x, y: antenna.y },
               { x: x - antenna.x, y: y - antenna.y }
             );
-            return;
+            antennaFound = true;
+            break;
           }
+        }
+        if (!antennaFound) {
+          isPanningRef.current = true;
+          panStartRef.current = { x: canvasX, y: canvasY };
+          panOffsetRef.current = { x: 0, y: 0 };
         }
       }
     },
-    [antennas, handleStartDragging, setIsNewAntenna, draggingAntennaRef]
+    [antennas, draggingAntennaRef, handleStartDragging, setIsNewAntenna]
   );
 
   const handleCanvasMouseMove = useCallback(
@@ -332,6 +391,8 @@ export function PhaseArrayCanvas({
           x: x - dragOffsetRef.current.x,
           y: y - dragOffsetRef.current.y,
         };
+      } else if (isPanningRef.current) {
+        handlePan(event);
       }
     },
     [
@@ -340,6 +401,8 @@ export function PhaseArrayCanvas({
       draggingPositionRef,
       isDraggingRef,
       setIsToolboxHovered,
+      isPanningRef,
+      handlePan,
     ]
   );
 
@@ -375,10 +438,28 @@ export function PhaseArrayCanvas({
         setTimeout(() => setWasDragging(false), 0);
       }
 
+      if (isPanningRef.current) {
+        setAntennas((prevAntennas) =>
+          prevAntennas.map((antenna) => ({
+            ...antenna,
+            x: antenna.x + panOffsetRef.current.x,
+            y: antenna.y - panOffsetRef.current.y,
+          }))
+        );
+        if (target) {
+          setTarget({
+            x: target.x + panOffsetRef.current.x,
+            y: target.y - panOffsetRef.current.y,
+          });
+        }
+      }
       handleStopDragging();
+      isPanningRef.current = false;
+      panStartRef.current = null;
+      panOffsetRef.current = { x: 0, y: 0 };
 
-      // If we were dragging, prevent the click event from firing
-      if (isDraggingRef.current) {
+      // If we were dragging or panning, prevent the click event from firing
+      if (isDraggingRef.current || isPanningRef.current) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -391,6 +472,8 @@ export function PhaseArrayCanvas({
       setWasDragging,
       setAntennas,
       draggingAntennaIndex,
+      target,
+      setTarget,
     ]
   );
 
@@ -457,6 +540,7 @@ export function PhaseArrayCanvas({
         handleStartDragging(null, { x, y }, { x: 0, y: 0 });
         setIsNewAntenna(true);
       } else {
+        let antennaFound = false;
         for (let i = 0; i < antennas.length; i++) {
           const antenna = antennas[i];
           const distance = Math.sqrt(
@@ -469,8 +553,14 @@ export function PhaseArrayCanvas({
               { x: antenna.x, y: antenna.y },
               { x: x - antenna.x, y: y - antenna.y }
             );
-            return;
+            antennaFound = true;
+            break;
           }
+        }
+        if (!antennaFound) {
+          isPanningRef.current = true;
+          panStartRef.current = { x: canvasX, y: canvasY };
+          panOffsetRef.current = { x: 0, y: 0 };
         }
       }
     },
@@ -499,6 +589,8 @@ export function PhaseArrayCanvas({
           x: x - dragOffsetRef.current.x,
           y: y - dragOffsetRef.current.y,
         };
+      } else if (isPanningRef.current) {
+        handlePan(event);
       }
     },
     [
@@ -507,6 +599,8 @@ export function PhaseArrayCanvas({
       draggingPositionRef,
       isDraggingRef,
       setIsToolboxHovered,
+      isPanningRef,
+      handlePan,
     ]
   );
 
@@ -541,7 +635,7 @@ export function PhaseArrayCanvas({
         }
         setWasDragging(true);
         setTimeout(() => setWasDragging(false), 0);
-      } else if (!wasDragging && antennas.length > 0) {
+      } else if (!wasDragging && !isPanningRef.current && antennas.length > 0) {
         const touch = event.changedTouches[0];
         const rect = canvas.getBoundingClientRect();
         const canvasX =
@@ -552,7 +646,25 @@ export function PhaseArrayCanvas({
         setTarget({ x, y });
       }
 
+      if (isPanningRef.current) {
+        setAntennas((prevAntennas) =>
+          prevAntennas.map((antenna) => ({
+            ...antenna,
+            x: antenna.x + panOffsetRef.current.x,
+            y: antenna.y - panOffsetRef.current.y,
+          }))
+        );
+        if (target) {
+          setTarget({
+            x: target.x + panOffsetRef.current.x,
+            y: target.y - panOffsetRef.current.y,
+          });
+        }
+      }
       handleStopDragging();
+      isPanningRef.current = false;
+      panStartRef.current = null;
+      panOffsetRef.current = { x: 0, y: 0 };
     },
     [
       isDraggingRef,
@@ -565,6 +677,7 @@ export function PhaseArrayCanvas({
       antennas.length,
       setTarget,
       wasDragging,
+      target,
     ]
   );
 
@@ -646,4 +759,3 @@ export function PhaseArrayCanvas({
     </div>
   );
 }
-

@@ -70,7 +70,7 @@ function drawOverlayGainChart(
   );
 
   // Calculate the diameter of the gain chart
-  const diameter = Math.min(canvas.width, canvas.height) - 20; // 10px margin on each side
+  const diameter = Math.min(canvas.width, canvas.height) * 0.75;
   const radius = diameter / 2;
 
   // Draw semi-transparent background
