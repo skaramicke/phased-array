@@ -72,12 +72,15 @@ export function drawTarget(
     const centerY = canvas.height / 2;
     const x = target.x * wavelengthPixels + centerX;
     const y = centerY - target.y * wavelengthPixels;
+
+    // Draw target crosshair
     ctx.beginPath();
     ctx.moveTo(x - 10, y);
     ctx.lineTo(x + 10, y);
     ctx.moveTo(x, y - 10);
     ctx.lineTo(x, y + 10);
     ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
 }
@@ -163,3 +166,4 @@ export function drawDraggingAntenna(
   ctx.fillText(`X: ${x.toFixed(2)}λ`, canvasX + 15, canvasY + 15);
   ctx.fillText(`Y: ${y.toFixed(2)}λ`, canvasX + 15, canvasY + 30);
 }
+

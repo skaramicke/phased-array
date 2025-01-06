@@ -98,19 +98,26 @@ export function PhaseArrayCanvas({
       // Draw the base grid
       drawGrid(ctx, canvas, gridSize);
 
+      // Add panning offset to target and antennas
+      const transformedTarget = target
+        ? {
+            x: target.x + (isPanningRef.current ? panOffsetRef.current.x : 0),
+            y: target.y - (isPanningRef.current ? panOffsetRef.current.y : 0),
+          }
+        : null;
+
+      const transformedAntennas = antennas.map((antenna) => ({
+        ...antenna,
+        x: antenna.x + (isPanningRef.current ? panOffsetRef.current.x : 0),
+        y: antenna.y - (isPanningRef.current ? panOffsetRef.current.y : 0),
+      }));
       // Draw origin marker
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.beginPath();
       ctx.arc(canvas.width / 2, canvas.height / 2, 5, 0, 2 * Math.PI);
       ctx.fill();
 
-      if (antennas.length > 0) {
-        const transformedAntennas = antennas.map((antenna) => ({
-          ...antenna,
-          x: antenna.x + (isPanningRef.current ? panOffsetRef.current.x : 0),
-          y: antenna.y - (isPanningRef.current ? panOffsetRef.current.y : 0),
-        }));
-
+      if (transformedAntennas.length > 0) {
         // Draw propagation waves (only when not panning)
         if (showWaves) {
           drawPropagation(
@@ -162,11 +169,7 @@ export function PhaseArrayCanvas({
       }
 
       // Draw target if it exists
-      if (target) {
-        const transformedTarget = {
-          x: target.x + (isPanningRef.current ? panOffsetRef.current.x : 0),
-          y: target.y - (isPanningRef.current ? panOffsetRef.current.y : 0),
-        };
+      if (transformedTarget) {
         drawTarget(ctx, transformedTarget, wavelengthPixels);
       }
 
@@ -759,3 +762,4 @@ export function PhaseArrayCanvas({
     </div>
   );
 }
+

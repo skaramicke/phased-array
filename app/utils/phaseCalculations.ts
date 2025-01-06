@@ -81,33 +81,61 @@ export function calculatePhases(
 }
 
 export function calculateGainChartData(antennas: Antenna[]) {
-  const centerAntennaX =
+  // Find array center
+  const centerX =
     antennas.reduce((sum, ant) => sum + ant.x, 0) / antennas.length;
-  const centerAntennaY =
+  const centerY =
     antennas.reduce((sum, ant) => sum + ant.y, 0) / antennas.length;
 
   const gainValues = [];
-  let maxGain = 0;
+  let maxGain = -Infinity;
 
+  // Calculate array factor for each angle
   for (let angle = 0; angle < 360; angle++) {
-    const radian = (angle * Math.PI) / 180;
-    let gainReal = 0;
-    let gainImag = 0;
+    const radian = ((angle - 90) * Math.PI) / 180;
+
+    // Direction cosines for exact phase calculation
+    const dirX = -Math.cos(radian);
+    const dirY = Math.sin(radian);
+
+    let sumReal = 0;
+    let sumImag = 0;
 
     for (const antenna of antennas) {
-      const dx = antenna.x - centerAntennaX;
-      const dy = antenna.y - centerAntennaY;
-      const distance = -dx * Math.cos(radian) + dy * Math.sin(radian);
-      const phase = (antenna.phase * Math.PI) / 180;
-      gainReal += Math.cos(2 * Math.PI * distance + phase);
-      gainImag += Math.sin(2 * Math.PI * distance + phase);
+      const dx = antenna.x - centerX;
+      const dy = antenna.y - centerY;
+
+      const positionPhase = 2 * Math.PI * (dx * dirX + dy * dirY);
+      const elementPhase = (antenna.phase * Math.PI) / 180;
+      const totalPhase = positionPhase + elementPhase;
+
+      sumReal += Math.cos(totalPhase);
+      sumImag += Math.sin(totalPhase);
     }
 
-    const gain =
-      Math.sqrt(gainReal * gainReal + gainImag * gainImag) / antennas.length;
-    gainValues.push(gain);
-    if (gain > maxGain) maxGain = gain;
+    // Calculate normalized power (relative to maximum)
+    const power = sumReal * sumReal + sumImag * sumImag;
+    const normalizedPower = power / (antennas.length * antennas.length);
+
+    // Convert to dB (will range from -inf to 0)
+    const gainDB = 10 * Math.log10(normalizedPower);
+    gainValues.push(gainDB);
+
+    if (gainDB > maxGain) {
+      maxGain = gainDB;
+    }
   }
 
-  return { gainValues, maxGain };
+  // Floor very low gains at -40dB
+  const processedGains = gainValues.map((gain) =>
+    Math.max(gain - maxGain, -40)
+  );
+
+  // Calculate array gain in dBd for labels
+  const arrayGainDBd = 10 * Math.log10(antennas.length);
+
+  return {
+    gainValues: processedGains, // Normalized pattern (-40 to 0 dB)
+    maxGain: arrayGainDBd, // True array gain in dBd for labels
+  };
 }
